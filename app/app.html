@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Just Play It Indexer</title>
+        <link rel="stylesheet" href="main.css" type="text/css">
+    </head>
+    <body>
+        <div class="contentWrapper">
+            <div class="settings">
+                
+                <h2>Justplayit Indexer</h2>
+
+
+                <div class="settingsItem bordered">
+                    <div>
+                        <button class="button btnSelectRoot"> Find my music</button>
+                    </div>
+
+                    <div class="subscript">
+                        (music has to be in a Dropbox folder)
+                    </div>
+                    
+                    <div class="scanFolderWrapper">
+                        <span>Your music is in : </span> <span class="scanFolder"></span>
+                    </div>
+                </div>
+
+
+
+                <div class="settingsItem  pathSelectedContent">
+                    <button class="button btnReindex">Reindex now</button>
+                </div>
+
+                <div class="settingsItem bordered">
+                    <input id="cbAutostart" class="cbAutostart" type="checkbox" />
+                    <label for="cbAutostart">Start automatically</label>
+                </div>
+
+                <div class="settingsItem filesFoundCount"></div>
+                <div class="settingsItem currentAction"></div>
+            </div>
+
+            <div class="outputLog"></div>
+        </div>
+    </body>
+
+    <script>
+        require('./indexer.js')
+    </script>
+</html>

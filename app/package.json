@@ -1,0 +1,21 @@
+{
+  "name": "JustPlayItIndexer",
+  "productName": "JustPlayItIndexer",
+  "description": "Indexes music files for Justplayit",
+  "version": "0.0.1",
+  "author": "Shukri Adams <shukri.adams@gmail.com>",
+  "copyright": "© 2016, Shukri Adams",
+  "homepage": "http://example.com",
+  "license": "MIT",
+  "main": "background.js",
+  "dependencies": {
+    "auto-launch" : "5.0.1",
+    "lokijs" : "1.4.1",
+    "electron-config" : "0.2.1",
+    "fs-jetpack": "^0.9.0",
+    "jsmediatags" : "3.8.1",
+    "multi-glob" : "1.0.1",
+    "xml-writer" : "1.6.0",
+    "chokidar" : "1.6.0"
+  }
+}
