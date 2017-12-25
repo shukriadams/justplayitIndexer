@@ -4,9 +4,9 @@ Download executables for Justplayit, ready for use.
 
 ## version 0.0.1
 
-Windows : https://github.com/shukriadams/justplayitIndexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe
-Mac : Coming soon.
-Linux : Coming soon.
+- Windows : https://github.com/shukriadams/justplayitIndexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe
+- Mac : Coming soon.
+- Linux : Coming soon.
 
 ## Development stuff
 
