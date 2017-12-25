@@ -1,11 +1,20 @@
 # Justplayit Indexer
 
-Based on https://github.com/szwacz/electron-boilerplate, 4.3.0
+Download executables for Justplayit, ready for use.
 
+## version 0.0.1
+
+Windows : https://github.com/shukriadams/justplayitIndexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe
+Mac : Coming soon.
+Linux : Coming soon.
+
+## Development stuff
+
+This project also contains the source for the indexer. It is based on https://github.com/szwacz/electron-boilerplate, 4.3.0
 
 Note for Windows - this project cannot be run in Vagrant or any VirtualBox host that shares folders with the host, as some of the gulp-based filesystem watchers will not permit this. Files must be stored on your VM's native disk.
 
-## Setup
+### Setup
 
 - Install Node 6.x
 
@@ -17,16 +26,16 @@ Note for Windows - this project cannot be run in Vagrant or any VirtualBox host 
 
     npm install 
 
-## Dev
+### Dev
   
 - in /
 
     npm start
 
-## Build 
+### Build 
 
 - in /
 
     npm run release     
 
-Binaries can be found in /dist    
+Distributable binaries can be found in /dist.
