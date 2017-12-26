@@ -41,7 +41,7 @@ var path = require('path'),
     _tray = null;
 
 // starts everything
-var mode ='debug';
+var mode ='';
 if (mode === 'debug'){
     setTimeout(() => {
        initLoki(); 
