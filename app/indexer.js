@@ -473,7 +473,7 @@ function generateXml(){
     writer.endDocument();
 
     var xml = writer.toString();
-    fs.writeFileSync(path.join(_dropboxFolder, 'justplayit.dat'), xml);
+    fs.writeFileSync(path.join(_dropboxFolder, '.myStream.dat'), xml);
 
     // clean dirty records
     for (var i = 0 ; i < dirty.length ; i ++){
