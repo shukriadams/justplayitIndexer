@@ -550,7 +550,7 @@ function onAppReady(){
         } }
     ]);
 
-    _tray.setToolTip('Justplayit Indexer');
+    _tray.setToolTip('myStream.cc Indexer');
     _tray.setContextMenu(contextMenu);
 }
 

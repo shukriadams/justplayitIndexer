@@ -1,11 +1,11 @@
 {
-  "name": "JustPlayItIndexer",
-  "productName": "JustPlayItIndexer",
-  "description": "Indexes music files for Justplayit",
+  "name": "myStreamCCIndexer",
+  "productName": "myStreamCCIndexer",
+  "description": "Indexes music files for myStream.cc",
   "version": "0.0.1",
-  "author": "Shukri Adams <shukri.adams@gmail.com>",
+  "author": "Shukri Adams <info@myStream.cc>",
   "copyright": "© 2016, Shukri Adams",
-  "homepage": "http://example.com",
+  "homepage": "http://myStream.cc",
   "license": "MIT",
   "main": "background.js",
   "dependencies": {
