@@ -17,7 +17,6 @@ Note for Windows - this project cannot be run in Vagrant or any VirtualBox host 
 ### Setup
 
 - Install Node 6.x
-
 - in / to set up boilerplate,
 
     npm install 
