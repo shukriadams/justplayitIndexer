@@ -2,7 +2,7 @@
   "name": "myStreamCCIndexer",
   "productName": "myStreamCCIndexer",
   "description": "Indexes music files for myStream.cc",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Shukri Adams <info@myStream.cc>",
   "copyright": "© 2016, Shukri Adams",
   "homepage": "http://myStream.cc",
@@ -10,7 +10,7 @@
   "main": "background.js",
   "dependencies": {
     "auto-launch" : "5.0.1",
-    "lokijs" : "1.4.1",
+    "lokijs" : "1.5.5",
     "electron-config" : "0.2.1",
     "fs-jetpack": "^0.9.0",
     "jsmediatags" : "3.8.1",

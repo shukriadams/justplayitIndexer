@@ -5,6 +5,7 @@ var path = require('path'),
     chokidar = require('chokidar'),
     AutoLaunch = require('auto-launch'),
     fs = require('fs'),
+    os = require('os'),
     electron = require('electron'),
     Config = require('electron-config'),
     lokijs = require('lokijs'),
@@ -19,8 +20,9 @@ var path = require('path'),
     scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     filesFoundCount = document.querySelector('.filesFoundCount'),
     outputLog = document.querySelector('.outputLog'),
-
-    lokijsPath = path.join(__dirname, 'persist.json'),
+    openLogLink = document.querySelector('.openLog'),
+    dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
+    lokijsPath =  path.join(dataFolder, 'persist.json'),
     lokijsdb = new lokijs(lokijsPath),
     _fileDataCollection,
     _mainWindow,
@@ -31,14 +33,18 @@ var path = require('path'),
     watchedExtensions = ['.mp3', '.m4a'],
     _filesChanged = false,
     _allFiles = {},
-    outputLogFile = path.join(__dirname, 'output.log'),
+    outputLogFile = path.join(dataFolder, 'output.log'),
     watcher,
     config = new Config(),
     autoLaunch = new AutoLaunch({ name: 'Indexer' }),
     _scanFolder = config.get('scanFolder'),
     _dropboxFolder = config.get('dropboxRoot'),
     _isAutostarting = config.get('autoStart'),
-    _tray = null;
+    _errorsOccurred = false,
+    _tray = null;    
+
+if (!fs.existsSync(dataFolder))
+    fs.mkdirSync(dataFolder);
 
 // starts everything
 var mode ='';
@@ -71,9 +77,6 @@ function onLokiReady(){
         console.log('loki file corrupt, resetting');
         return initLoki();
     }
-
-    // clear output log, else log will grow undefinitely.
-    fs.writeFileSync(outputLogFile, '');
 
     // set state of "auto start" checkbox
     if (_isAutostarting === undefined || _isAutostarting === null)
@@ -117,6 +120,10 @@ function onLokiReady(){
             autoLaunch.enable();
         else
             autoLaunch.disable();
+    });
+
+    openLogLink.addEventListener('click', function(){
+        electron.shell.openItem(outputLogFile);
     });
 
     btnReindex.addEventListener('click', function() {
@@ -250,17 +257,10 @@ function registerFileChange(file, action){
  * starts.
  */
 function writeToLog(text){
-    fs.appendFileSync(outputLogFile, text + '\r\n');
-}
-
-
-/**
- * Writes error to screen.
- **/
-function writeOutputLog(text){
-    var row = document.createElement('div');
-    row.innerHTML = text;
-    outputLog.insertBefore(row, outputLog.firstChild);
+    fs.appendFile(outputLogFile, text + os.EOL, function(err){
+        if (err)
+            console.log(err);
+    });
 }
 
 
@@ -281,13 +281,18 @@ function handleFileChanges(){
 
     _filesChanged = false;
     _busyReadingFiles = true;
+    _errorsOccurred = false;
     btnReindex.style.display = 'none';
     outputLog.innerHTML = '';
+    openLogLink.style.display = 'none';
 
     if (_dropboxFolder === null){
         setCurrentAction('The path you selected is not within a Dropbox folder.');
         return;
     }
+
+    // clear output log
+    fs.writeFileSync(outputLogFile, '');
 
     var processedCount = 0,
         allProperties = Object.keys(_allFiles),
@@ -396,8 +401,8 @@ function handleFileChanges(){
                 else
                     _fileDataCollection.update(fileCachedData);
 
-                writeOutputLog(message);
                 writeToLog(message + ' : ' + JSON.stringify(error));
+                _errorsOccurred = true;
                 intervalBusy = false;
             }
         }); // timer function
@@ -424,8 +429,6 @@ function generateXml(){
         btnReindex.style.display = 'inline';
         return;
     }
-    
-    console.log('dirty files ' + dirty.length);
 
     setCurrentAction('Indexing ... ');
 
@@ -495,6 +498,9 @@ function generateXml(){
 
     setCurrentAction('New index file written. Watching for changes ...');
     btnReindex.style.display = 'inline';
+
+    if (_errorsOccurred)
+        openLogLink.style.display = 'block';
 }
 
 /**

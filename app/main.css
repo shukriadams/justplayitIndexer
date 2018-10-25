@@ -44,6 +44,11 @@ h2 {
     font-weight: bold;
 }
 
+.openLog{
+    cursor: pointer;
+    display: none;
+}
+
 .pathSelectedContent,
 .scanFolderWrapper {
     display: none;
