@@ -189,6 +189,7 @@ function bindMainWindowEvents(){
             if (mainWindow)
                 bind();
         }
+        
     }, 500);
 
 }
