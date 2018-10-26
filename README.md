@@ -29,6 +29,8 @@ Note for Windows - this project cannot be run in Vagrant or any VirtualBox host 
 
     npm start
 
+To test the app, point it to a folder containing a ".dropbox" subfolder, this is used as a flag that the folder is being controlled by Dropbox. The app generates a ".myStream.dat" file, which contains XML data.
+
 ### Build 
 
 - in /

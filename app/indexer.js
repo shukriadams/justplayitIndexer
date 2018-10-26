@@ -440,6 +440,7 @@ function generateXml(){
 
     writer.startDocument();
     writer.startElement('items');
+    writer.writeAttribute('date', new Date().getTime());
 
     for (var i = 0 ; i < allProperties.length ; i ++) {
 
