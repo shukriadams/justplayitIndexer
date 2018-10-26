@@ -1,10 +1,8 @@
 # myStream.cc Indexer
 
-Download executables for myStream.cc, ready for use.
+Indexes your music files, making them ready to play through [myStream.cc](https://www.mystream.cc)
 
-## version 0.0.1
-
-- Windows : https://github.com/shukriadams/mystreamccindexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe
+- Windows : [Download 0.0.1](https://github.com/shukriadams/mystreamccindexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe)
 - Mac : Coming soon.
 - Linux : Coming soon.
 
@@ -17,11 +15,11 @@ Note for Windows - this project cannot be run in Vagrant or any VirtualBox host 
 ### Setup
 
 - Install Node 6.x
-- in / to set up boilerplate,
+- in / set up boilerplate with
 
     npm install 
 
-- in /app to set up custom dependencies
+- in /app set up custom dependencies
 
     npm install 
 
