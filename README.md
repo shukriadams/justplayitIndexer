@@ -1,10 +1,10 @@
-# Justplayit Indexer
+# myStream.cc Indexer
 
-Download executables for Justplayit, ready for use.
+Download executables for myStream.cc, ready for use.
 
 ## version 0.0.1
 
-- Windows : https://github.com/shukriadams/justplayitIndexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe
+- Windows : https://github.com/shukriadams/mystreamccindexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe
 - Mac : Coming soon.
 - Linux : Coming soon.
 
