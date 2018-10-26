@@ -1,54 +1,52 @@
 'use strict';
 
-var path = require('path'),
-    process = require('process'),
-    chokidar = require('chokidar'),
-    AutoLaunch = require('auto-launch'),
-    fs = require('fs'),
-    os = require('os'),
-    electron = require('electron'),
-    Config = require('electron-config'),
-    lokijs = require('lokijs'),
-    glob = require('multi-glob').glob,
-
-    btnReindex = document.querySelector('.btnReindex'),
-    btnSelectRoot = document.querySelector('.btnSelectRoot'),
-    pathSelectedContent = document.querySelector('.pathSelectedContent'),
-    scanFolderDisplay = document.querySelector('.scanFolder'),
-    currentAction = document.querySelector('.currentAction'),
-    cbAutostart = document.querySelector('.cbAutostart'),
-    scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
-    filesFoundCount = document.querySelector('.filesFoundCount'),
-    outputLog = document.querySelector('.outputLog'),
-    openLogLink = document.querySelector('.openLog'),
-    dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
-    lokijsPath =  path.join(dataFolder, 'persist.json'),
-    lokijsdb = new lokijs(lokijsPath),
+var _path = require('path'),
+    _chokidar = require('chokidar'),
+    _AutoLaunch = require('auto-launch'),
+    _fs = require('fs'),
+    _os = require('os'),
+    _electron = require('electron'),
+    _Config = require('electron-config'),
+    _lokijs = require('lokijs'),
+    _glob = require('multi-glob').glob,
+    _btnReindex = document.querySelector('.btnReindex'),
+    _btnSelectRoot = document.querySelector('.btnSelectRoot'),
+    _pathSelectedContent = document.querySelector('.pathSelectedContent'),
+    _scanFolderDisplay = document.querySelector('.scanFolder'),
+    _currentAction = document.querySelector('.currentAction'),
+    _cbAutostart = document.querySelector('.cbAutostart'),
+    _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
+    _filesFoundCount = document.querySelector('.filesFoundCount'),
+    _outputLog = document.querySelector('.outputLog'),
+    _openLogLink = document.querySelector('.openLog'),
+    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
+    _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
+    _lokijsdb = new _lokijs(_lokijsPath),
     _fileDataCollection,
     _mainWindow,
-    Tray = electron.remote.Tray,
-    Menu = electron.remote.Menu,
-    dialog = electron.remote.dialog,
+    _Tray = _electron.remote.Tray,
+    _menu = _electron.remote.Menu,
+    _dialog = _electron.remote.dialog,
     _busyReadingFiles = false,
-    watchedExtensions = ['.mp3', '.m4a'],
+    _watchedExtensions = ['.mp3', '.m4a'],
     _filesChanged = false,
     _allFiles = {},
-    outputLogFile = path.join(dataFolder, 'output.log'),
-    watcher,
-    config = new Config(),
-    autoLaunch = new AutoLaunch({ name: 'Indexer' }),
-    _scanFolder = config.get('scanFolder'),
-    _dropboxFolder = config.get('dropboxRoot'),
-    _isAutostarting = config.get('autoStart'),
+    _outputLogFile = _path.join(_dataFolder, 'output.log'),
+    _watcher,
+    _config = new _Config(),
+    _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
+    _scanFolder = _config.get('scanFolder'),
+    _dropboxFolder = _config.get('dropboxRoot'),
+    _isAutostarting = _config.get('autoStart'),
     _errorsOccurred = false,
+    _mode = '',
     _tray = null;    
 
-if (!fs.existsSync(dataFolder))
-    fs.mkdirSync(dataFolder);
+if (!_fs.existsSync(_dataFolder))
+    _fs.mkdirSync(_dataFolder);
 
 // starts everything
-var mode ='';
-if (mode === 'debug'){
+if (_mode === 'debug'){
     setTimeout(() => {
        initLoki(); 
     }, 1000);
@@ -57,13 +55,13 @@ if (mode === 'debug'){
 
 function initLoki(){
     // load lokidb, this is async
-    if (fs.existsSync(lokijsPath)){
-        lokijsdb.loadDatabase({}, function(){
-            _fileDataCollection = lokijsdb.getCollection('fileData');
+    if (_fs.existsSync(_lokijsPath)){
+        _lokijsdb.loadDatabase({}, function(){
+            _fileDataCollection = _lokijsdb.getCollection('fileData');
             onLokiReady();
         });
     } else {
-        _fileDataCollection = lokijsdb.addCollection('fileData',{ unique:['file']});
+        _fileDataCollection = _lokijsdb.addCollection('fileData',{ unique:['file']});
         onLokiReady();
     }
 }
@@ -73,7 +71,7 @@ function onLokiReady(){
 
     // if loki hasn't loaded, its json file is corrupt, 
     if (!_fileDataCollection){
-        fs.unlink(lokijsPath);
+        _fs.unlink(_lokijsPath);
         console.log('loki file corrupt, resetting');
         return initLoki();
     }
@@ -81,25 +79,25 @@ function onLokiReady(){
     // set state of "auto start" checkbox
     if (_isAutostarting === undefined || _isAutostarting === null)
         _isAutostarting = false;
-    cbAutostart.checked = _isAutostarting;
+    _cbAutostart.checked = _isAutostarting;
 
     // set autostart service for next time app starts
-    if (cbAutostart)
-        autoLaunch.enable();
+    if (_cbAutostart)
+        _autoLaunch.enable();
     else
-        autoLaunch.disable();
+        _autoLaunch.disable();
 
     setStateBasedOnScanFolder();
 
-    btnSelectRoot.addEventListener('click', function(){
+    _btnSelectRoot.addEventListener('click', function(){
 
-        var folder = dialog.showOpenDialog({
+        var folder = _dialog.showOpenDialog({
             properties: ['openDirectory']
         });
 
         if (folder && folder.length){
             _scanFolder = folder[0];
-            config.set('scanFolder', _scanFolder);
+            _config.set('scanFolder', _scanFolder);
 
             _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
             if (_dropboxFolder === null){
@@ -113,22 +111,22 @@ function onLokiReady(){
 
     }, false);
 
-    cbAutostart.addEventListener('change', function() {
-        config.set('autoStart', cbAutostart.checked);
+    _cbAutostart.addEventListener('change', function() {
+        _config.set('autoStart', _cbAutostart.checked);
 
-        if (cbAutostart.checked)
-            autoLaunch.enable();
+        if (_cbAutostart.checked)
+            _autoLaunch.enable();
         else
-            autoLaunch.disable();
+            _autoLaunch.disable();
     });
 
-    openLogLink.addEventListener('click', function(){
-        electron.shell.openItem(outputLogFile);
+    _openLogLink.addEventListener('click', function(){
+        _electron.shell.openItem(_outputLogFile);
     });
 
-    btnReindex.addEventListener('click', function() {
+    _btnReindex.addEventListener('click', function() {
         _fileDataCollection.clear(); // force flush collection
-        lokijsdb.saveDatabase();
+        _lokijsdb.saveDatabase();
         
         scanAllFiles(function(){
             _filesChanged = true;
@@ -138,11 +136,11 @@ function onLokiReady(){
 
     bindMainWindowEvents();
 
-    electron.remote.app.on('ready', function() {
+    _electron.remote.app.on('ready', function() {
         onAppReady();
     });
 
-    if (electron.remote.app.isReady()){
+    if (_electron.remote.app.isReady()){
         onAppReady();
     }
 }
@@ -162,7 +160,7 @@ function bindMainWindowEvents(){
         });
     
         _mainWindow.on('close', function (e) {
-            if( !electron.remote.app.isQuiting){
+            if( !_electron.remote.app.isQuiting){
                 e.preventDefault();
                 _mainWindow.hide();
             }
@@ -175,13 +173,13 @@ function bindMainWindowEvents(){
         attempts ++;
 
         var mainWindow,
-            allwindows = electron.remote.BrowserWindow.getAllWindows();
+            allwindows = _electron.remote.BrowserWindow.getAllWindows();
 
         if (allwindows && allwindows.length === 1)
             mainWindow = allwindows[0];
     
         if (!mainWindow)
-            mainWindow = electron.remote.BrowserWindow.getFocusedWindow(); 
+            mainWindow = _electron.remote.BrowserWindow.getFocusedWindow(); 
 
         if (mainWindow || attempts > 20){
             clearInterval(mainWindowFindTimer);
@@ -200,7 +198,7 @@ function bindMainWindowEvents(){
  * doing.
  */
 function setCurrentAction(action){
-    currentAction.innerHTML = action;
+    _currentAction.innerHTML = action;
 }
 
 
@@ -214,17 +212,17 @@ function resolveDropboxPathFragment(startFolder){
 
     do {
         // is current dropbox root?
-        if (fs.existsSync(path.join(current, '.dropbox')) || fs.existsSync(path.join(current, '.dropbox.cache'))){
+        if (_fs.existsSync(_path.join(current, '.dropbox')) || _fs.existsSync(_path.join(current, '.dropbox.cache'))){
             return current.replace(/\\/g, '/');
         }
 
-        var parent = path.join(current, '../');
+        var parent = _path.join(current, '../');
         if (current === parent)
             break;
 
         current = parent;    
     }
-    while(fs.existsSync(current));
+    while(_fs.existsSync(current));
 
     return null;
 };
@@ -237,9 +235,9 @@ function resolveDropboxPathFragment(startFolder){
  *  4) if change while writing, queue change until done
  */
 function registerFileChange(file, action){
-    var extension = path.extname(file);
+    var extension = _path.extname(file);
     
-    if (watchedExtensions.indexOf(extension) === -1)
+    if (_watchedExtensions.indexOf(extension) === -1)
         return;
 
     if (action === 'delete')
@@ -258,7 +256,7 @@ function registerFileChange(file, action){
  * starts.
  */
 function writeToLog(text){
-    fs.appendFile(outputLogFile, text + os.EOL, function(err){
+    _fs.appendFile(_outputLogFile, text + _os.EOL, function(err){
         if (err)
             console.log(err);
     });
@@ -283,9 +281,9 @@ function handleFileChanges(){
     _filesChanged = false;
     _busyReadingFiles = true;
     _errorsOccurred = false;
-    btnReindex.style.display = 'none';
-    outputLog.innerHTML = '';
-    openLogLink.style.display = 'none';
+    _btnReindex.style.display = 'none';
+    _outputLog.innerHTML = '';
+    _openLogLink.style.display = 'none';
 
     if (_dropboxFolder === null){
         setCurrentAction('The path you selected is not within a Dropbox folder.');
@@ -293,13 +291,13 @@ function handleFileChanges(){
     }
 
     // clear output log
-    fs.writeFileSync(outputLogFile, '');
+    _fs.writeFileSync(_outputLogFile, '');
 
     var processedCount = 0,
         allProperties = Object.keys(_allFiles),
         filesToProcessCount = allProperties.length;
 
-    filesFoundCount.innerHTML = (filesToProcessCount ? filesToProcessCount : 'No') + ' files found.';
+    _filesFoundCount.innerHTML = (filesToProcessCount ? filesToProcessCount : 'No') + ' files found.';
 
     var intervalBusy = false,
         jsmediatags = require('jsmediatags');
@@ -316,7 +314,7 @@ function handleFileChanges(){
         // check if all objects have been processed, if so write xml from loki and exit
         if (processedCount === filesToProcessCount - 1){
             _busyReadingFiles = false;
-            lokijsdb.saveDatabase();
+            _lokijsdb.saveDatabase();
             clearInterval(timer);
             generateXml();
             intervalBusy = false;
@@ -327,7 +325,7 @@ function handleFileChanges(){
         setCurrentAction('Checking ' + file);
 
         // ensure file exists, during deletes this list can be slow to update
-        if (!fs.existsSync(file)) {
+        if (!_fs.existsSync(file)) {
             delete _allFiles[file];
             processedCount ++;
             intervalBusy = false;
@@ -339,7 +337,7 @@ function handleFileChanges(){
             fileCachedData = _fileDataCollection.by('file', file);
 
         if (fileCachedData){
-            fileStats = fs.statSync(file);
+            fileStats = _fs.statSync(file);
             if (fileStats.mtime.toString() === fileCachedData.mtime){
                 processedCount ++;
                 intervalBusy = false;
@@ -427,7 +425,7 @@ function generateXml(){
     if (!dirty.length)
     {
         setCurrentAction('Watching for changes ...');
-        btnReindex.style.display = 'inline';
+        _btnReindex.style.display = 'inline';
         return;
     }
 
@@ -477,7 +475,7 @@ function generateXml(){
     writer.endDocument();
 
     var xml = writer.toString();
-    fs.writeFileSync(path.join(_dropboxFolder, '.myStream.dat'), xml);
+    _fs.writeFileSync(_path.join(_dropboxFolder, '.myStream.dat'), xml);
 
     // clean dirty records
     for (var i = 0 ; i < dirty.length ; i ++){
@@ -495,14 +493,15 @@ function generateXml(){
         _fileDataCollection.remove(orphans[i]);
     }
 
-    lokijsdb.saveDatabase();
+    _lokijsdb.saveDatabase();
 
     setCurrentAction('New index file written. Watching for changes ...');
-    btnReindex.style.display = 'inline';
+    _btnReindex.style.display = 'inline';
 
     if (_errorsOccurred)
-        openLogLink.style.display = 'block';
+        _openLogLink.style.display = 'block';
 }
+
 
 /**
  * Called when the "reindex now" button is clicked. Force rescans and reindexex everything. Does not directly trigger reindex, 
@@ -518,10 +517,10 @@ function scanAllFiles (callback){
     setCurrentAction('Scanning files, this can take a while ... ');
     
     var globPaths = [];
-    for (var i = 0; i < watchedExtensions.length ; i ++)
-        globPaths.push(path.join(root, '**/*' + watchedExtensions[i]));
+    for (var i = 0; i < _watchedExtensions.length ; i ++)
+        globPaths.push(_path.join(root, '**/*' + _watchedExtensions[i]));
 
-    glob(globPaths, { }, function(er, files) {
+    _glob(globPaths, { }, function(er, files) {
         if (er)
             throw er;
 
@@ -544,15 +543,15 @@ function scanAllFiles (callback){
  * Does final setup stuff when app is ready
  */
 function onAppReady(){
-    _tray = new Tray(__dirname + '/resources/windows/icon.ico');
+    _tray = new _Tray(__dirname + '/resources/windows/icon.ico');
 
-    var contextMenu = Menu.buildFromTemplate([
+    var contextMenu = _menu.buildFromTemplate([
         {label: 'Show', click:  function() {
             _mainWindow.show();
         } },
         {label: 'Quit', click:  function(){
-            electron.remote.app.isQuiting = true;
-            electron.remote.app.quit();
+            _electron.remote.app.isQuiting = true;
+            _electron.remote.app.quit();
 
         } }
     ]);
@@ -573,9 +572,9 @@ function setStateBasedOnScanFolder(){
 
     _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
 
-    pathSelectedContent.style.display = 'block';
-    scanFolderWrapper.style.display = 'block';
-    scanFolderDisplay.innerHTML = _scanFolder;
+    _pathSelectedContent.style.display = 'block';
+    _scanFolderWrapper.style.display = 'block';
+    _scanFolderDisplay.innerHTML = _scanFolder;
 
     if (_dropboxFolder === null){
         setCurrentAction('Error : Your music folder is not in your Dropbox folder');
@@ -583,7 +582,7 @@ function setStateBasedOnScanFolder(){
 
         scanAllFiles(function(){
 
-            watcher = chokidar.watch([_scanFolder], {
+            _watcher = _chokidar.watch([_scanFolder], {
                 persistent: true,
                 ignoreInitial : true,
                 awaitWriteFinish: {
@@ -593,7 +592,7 @@ function setStateBasedOnScanFolder(){
             });
             
             // start watched for file changes
-            watcher
+            _watcher
                 .on('add', function(p) {
                     registerFileChange(p, 'add');
                 })
@@ -609,8 +608,5 @@ function setStateBasedOnScanFolder(){
                 handleFileChanges();
             }, 1000);
         });
-
-        
     }
-   
 }
