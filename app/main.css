@@ -34,6 +34,11 @@ h2 {
     padding: 10px 20px;
 }
 
+.button.button--disable {
+    opacity: .5;
+    pointer-events: none;
+}
+
 .subscript {
     font-size: 12px;
     padding: 15px 0 20px 0;
@@ -46,7 +51,7 @@ h2 {
 
 .openLog{
     cursor: pointer;
-    display: none;
+    visibility: hidden;
 }
 
 .pathSelectedContent{
@@ -81,8 +86,9 @@ h2 {
     padding-right: 10px;
     width: 100%;
     box-sizing: border-box; 
-    height: 76px;
-    max-height: 76px;
-    min-height: 76px;
     overflow: hidden;       
+    text-align: left;
+    display: inline-block;
+    max-width: 300px;
+    white-space: nowrap;
 }

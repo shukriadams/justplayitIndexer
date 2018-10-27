@@ -101,7 +101,7 @@ function onLokiReady(){
 
             _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
             if (_dropboxFolder === null){
-                setCurrentAction('Your music folder does not seem to be in your Dropbox folder');
+                setStatus('Your music folder does not seem to be in your Dropbox folder');
             }
 
             _allFiles = {}; // force reset content
@@ -197,8 +197,16 @@ function bindMainWindowEvents(){
  * Writes current action to UI. Only one action is displayed at a time. Use this to inform user what app is currently
  * doing.
  */
-function setCurrentAction(action){
+function setProgress(action){
     _currentAction.innerHTML = action;
+}
+
+
+/**
+ * 
+ */
+function setStatus(status){
+    _filesFoundCount.innerHTML = status;
 }
 
 
@@ -281,12 +289,12 @@ function handleFileChanges(){
     _filesChanged = false;
     _busyReadingFiles = true;
     _errorsOccurred = false;
-    _btnReindex.style.display = 'none';
+    _btnReindex.classList.add('button--disable');
     _outputLog.innerHTML = '';
-    _openLogLink.style.display = 'none';
+    _openLogLink.style.visibility = 'hidden';
 
     if (_dropboxFolder === null){
-        setCurrentAction('The path you selected is not within a Dropbox folder.');
+        setStatus('The path you selected is not within a Dropbox folder.');
         return;
     }
 
@@ -297,7 +305,7 @@ function handleFileChanges(){
         allProperties = Object.keys(_allFiles),
         filesToProcessCount = allProperties.length;
 
-    _filesFoundCount.innerHTML = (filesToProcessCount ? filesToProcessCount : 'No') + ' files found.';
+    setStatus((filesToProcessCount ? filesToProcessCount : 'No') + ' files found.');
 
     var intervalBusy = false,
         jsmediatags = require('jsmediatags');
@@ -316,13 +324,13 @@ function handleFileChanges(){
             _busyReadingFiles = false;
             _lokijsdb.saveDatabase();
             clearInterval(timer);
+            setProgress('');
             generateXml();
             intervalBusy = false;
             return;
         }
 
         var file = allProperties[processedCount];
-        setCurrentAction('Checking ' + file);
 
         // ensure file exists, during deletes this list can be slow to update
         if (!_fs.existsSync(file)) {
@@ -358,20 +366,22 @@ function handleFileChanges(){
             onSuccess: function(tag) {
 
                 processedCount ++;
-                setCurrentAction('Reading file ' + processedCount + ' of ' + filesToProcessCount + ' : ' + file);
 
                 if (tag.type === 'ID3' || tag.type === 'MP4'){
                     var fileNormalized = file.replace(/\\/g, '/');
 
                     fileCachedData.dirty = true;
                     fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                    fileCachedData.tagData  = {
+                    fileCachedData.tagData = {
                         name : tag.tags.title,
                         album : tag.tags.album,
                         track : tag.tags.track,
                         artist : tag.tags.artist,
                         clippedPath : fileNormalized.replace(_dropboxFolder, '/').replace(/\\/g, '/')
                     };
+                    
+                    var percent = Math.floor(processedCount / filesToProcessCount * 100);
+                    setProgress(percent + '% : ' + tag.tags.title + ' - ' + tag.tags.artist);
 
                     if (insert)
                         _fileDataCollection.insert(fileCachedData);
@@ -424,12 +434,12 @@ function generateXml(){
     var dirty = _fileDataCollection.find({dirty :  true});
     if (!dirty.length)
     {
-        setCurrentAction('Watching for changes ...');
-        _btnReindex.style.display = 'inline';
+        setStatus('Watching for changes ...');
+        _btnReindex.classList.remove('button--disable');
         return;
     }
 
-    setCurrentAction('Indexing ... ');
+    setStatus('Indexing ... ');
 
     // force rebuild array, this tends to lag behind
     var allProperties = Object.keys(_allFiles),
@@ -469,7 +479,7 @@ function generateXml(){
         writer.writeAttribute('path', id3.clippedPath);
         writer.endElement();
 
-        setCurrentAction('Indexing ' + lineoutcount + ' of ' + id3Array.length + ', ' + id3.artist + ' ' + id3.name);
+        setStatus('Indexing ' + lineoutcount + ' of ' + id3Array.length + ', ' + id3.artist + ' ' + id3.name);
     }
 
     writer.endElement();
@@ -496,11 +506,11 @@ function generateXml(){
 
     _lokijsdb.saveDatabase();
 
-    setCurrentAction('New index file written. Watching for changes ...');
-    _btnReindex.style.display = 'inline';
+    setStatus('New index file written. Watching for changes ...');
+    _btnReindex.classList.remove('button--disable');
 
     if (_errorsOccurred)
-        _openLogLink.style.display = 'block';
+        _openLogLink.style.visibility = 'visible';
 }
 
 
@@ -515,7 +525,7 @@ function scanAllFiles (callback){
 
     var root = _scanFolder.replace(/\\/g, '/');
 
-    setCurrentAction('Scanning files, this can take a while ... ');
+    setStatus('Scanning files, this can take a while ... ');
     
     var globPaths = [];
     for (var i = 0; i < _watchedExtensions.length ; i ++)
@@ -525,7 +535,7 @@ function scanAllFiles (callback){
         if (er)
             throw er;
 
-        setCurrentAction('Found ' + files.length + ' files');
+        setStatus('Found ' + files.length + ' files');
 
         _allFiles = {};
         for (var i = 0 ; i < files.length ; i ++)
@@ -578,7 +588,7 @@ function setStateBasedOnScanFolder(){
     _scanFolderDisplay.innerHTML = _scanFolder;
 
     if (_dropboxFolder === null){
-        setCurrentAction('Error : Your music folder is not in your Dropbox folder');
+        setStatus('Error : Your music folder is not in your Dropbox folder');
     } else {
 
         scanAllFiles(function(){
