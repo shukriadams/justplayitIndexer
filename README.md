@@ -2,7 +2,7 @@
 
 Indexes your music files, making them ready to play through [myStream.cc](https://www.mystream.cc)
 
-- Windows : [Download 0.0.1](https://github.com/shukriadams/mystreamccindexer/releases/download/0.0.1/JustPlayItIndexer_Setup_0.0.1.exe)
+- Windows : [Download version 0.0.2](https://github.com/shukriadams/mystreamccindexer/releases/download/0.0.2/myStreamCCIndexer_Setup_0.0.2.exe)
 - Mac : Coming soon.
 - Linux : Coming soon.
 
