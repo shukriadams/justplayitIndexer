@@ -50,22 +50,34 @@ h2 {
 }
 
 .openLog{
+    color:#ce4e0a;
     cursor: pointer;
     visibility: hidden;
 }
 
-.pathSelectedContent{
-    display: none;
+.pathSelectedContent {
+    visibility: hidden;
     height: 35px; 
 }
 
 .scanFolderWrapper {
-    display: none;
+    visibility: hidden;
+}
+
+.settingsSection {
+    padding: 16px 0;
 }
 
 .settingsItem {
     padding-bottom: 15px;
     padding-top: 15px;
+}
+
+.settingsItemMinor {
+    padding-bottom: 4px;
+    min-height: 20px; /*force height to stop ui hoppping when this element is emptied*/
+    overflow: hidden;       
+    white-space: nowrap;
 }
 
 .settingsItem.bordered {
@@ -86,9 +98,7 @@ h2 {
     padding-right: 10px;
     width: 100%;
     box-sizing: border-box; 
-    overflow: hidden;       
     text-align: left;
+    max-width: 280px;
     display: inline-block;
-    max-width: 300px;
-    white-space: nowrap;
 }

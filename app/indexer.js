@@ -17,7 +17,7 @@ var _path = require('path'),
     _cbAutostart = document.querySelector('.cbAutostart'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _filesFoundCount = document.querySelector('.filesFoundCount'),
-    _outputLog = document.querySelector('.outputLog'),
+    _status = document.querySelector('.status'),
     _openLogLink = document.querySelector('.openLog'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
     _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
@@ -206,7 +206,15 @@ function setProgress(action){
  * 
  */
 function setStatus(status){
-    _filesFoundCount.innerHTML = status;
+    _status.innerHTML = status;
+}
+
+
+/**
+ * 
+ */ 
+function filesFound(count){
+    _filesFoundCount.innerHTML = (count ? count : 'No') + ' files found';
 }
 
 
@@ -290,7 +298,6 @@ function handleFileChanges(){
     _busyReadingFiles = true;
     _errorsOccurred = false;
     _btnReindex.classList.add('button--disable');
-    _outputLog.innerHTML = '';
     _openLogLink.style.visibility = 'hidden';
 
     if (_dropboxFolder === null){
@@ -305,7 +312,7 @@ function handleFileChanges(){
         allProperties = Object.keys(_allFiles),
         filesToProcessCount = allProperties.length;
 
-    setStatus((filesToProcessCount ? filesToProcessCount : 'No') + ' files found.');
+    filesFound(filesToProcessCount);
 
     var intervalBusy = false,
         jsmediatags = require('jsmediatags');
@@ -434,7 +441,7 @@ function generateXml(){
     var dirty = _fileDataCollection.find({dirty :  true});
     if (!dirty.length)
     {
-        setStatus('Watching for changes ...');
+        setStatus('');
         _btnReindex.classList.remove('button--disable');
         return;
     }
@@ -506,7 +513,7 @@ function generateXml(){
 
     _lokijsdb.saveDatabase();
 
-    setStatus('New index file written. Watching for changes ...');
+    setStatus('Indexing complete');
     _btnReindex.classList.remove('button--disable');
 
     if (_errorsOccurred)
@@ -535,7 +542,8 @@ function scanAllFiles (callback){
         if (er)
             throw er;
 
-        setStatus('Found ' + files.length + ' files');
+        filesFound(files.length);
+        setStatus('');
 
         _allFiles = {};
         for (var i = 0 ; i < files.length ; i ++)
@@ -583,8 +591,8 @@ function setStateBasedOnScanFolder(){
 
     _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
 
-    _pathSelectedContent.style.display = 'block';
-    _scanFolderWrapper.style.display = 'block';
+    _pathSelectedContent.style.visibility = 'visible';
+    _scanFolderWrapper.style.visibility = 'visible';
     _scanFolderDisplay.innerHTML = _scanFolder;
 
     if (_dropboxFolder === null){
