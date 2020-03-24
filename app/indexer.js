@@ -35,8 +35,7 @@ var _path = require('path'),
     _watcher,
     _config = new _Config(),
     _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
-    _scanFolder = _config.get('scanFolder'),
-    _dropboxFolder = _config.get('dropboxRoot'),
+    _storageRootFolder = _config.get('storageRoot'),
     _isAutostarting = _config.get('autoStart'),
     _errorsOccurred = false,
     _mode = '',
@@ -96,14 +95,8 @@ function onLokiReady(){
         });
 
         if (folder && folder.length){
-            _scanFolder = folder[0];
-            _config.set('scanFolder', _scanFolder);
-
-            _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
-            if (_dropboxFolder === null){
-                setStatus('Your music folder does not seem to be in your Dropbox folder');
-            }
-
+            _storageRootFolder = folder[0];
+            _config.set('storageRoot', _storageRootFolder);
             _allFiles = {}; // force reset content
         }
 
@@ -193,6 +186,10 @@ function bindMainWindowEvents(){
 }
 
 
+function toUnixPaths(path){
+    return path.replace(/\\/g, '/');
+}
+
 /**
  * Writes current action to UI. Only one action is displayed at a time. Use this to inform user what app is currently
  * doing.
@@ -219,17 +216,17 @@ function filesFound(count){
 
 
 /**
- * Resolves path fragment from scanFolder to get to dropbox root. Returns null
+ * Resolves path fragment from scanFolder to get to storage root root. Returns null
  * if no path found.
  */
-function resolveDropboxPathFragment(startFolder){
+function resolveStoragePathFragment(startFolder){
 
     var current = startFolder;
 
     do {
-        // is current dropbox root?
-        if (_fs.existsSync(_path.join(current, '.dropbox')) || _fs.existsSync(_path.join(current, '.dropbox.cache'))){
-            return current.replace(/\\/g, '/');
+        // is current folder root?
+        if (current === _storageRootFolder){
+            return toUnixPaths(current);
         }
 
         var parent = _path.join(current, '../');
@@ -300,7 +297,7 @@ function handleFileChanges(){
     _btnReindex.classList.add('button--disable');
     _openLogLink.style.visibility = 'hidden';
 
-    if (_dropboxFolder === null){
+    if (_storageRootFolder === null){
         setStatus('The path you selected is not within a Dropbox folder.');
         return;
     }
@@ -375,7 +372,7 @@ function handleFileChanges(){
                 processedCount ++;
 
                 if (tag.type === 'ID3' || tag.type === 'MP4'){
-                    var fileNormalized = file.replace(/\\/g, '/');
+                    var fileNormalized = toUnixPaths(file);
 
                     fileCachedData.dirty = true;
                     fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
@@ -384,7 +381,7 @@ function handleFileChanges(){
                         album : tag.tags.album,
                         track : tag.tags.track,
                         artist : tag.tags.artist,
-                        clippedPath : fileNormalized.replace(_dropboxFolder, '/').replace(/\\/g, '/')
+                        clippedPath : toUnixPaths(fileNormalized.replace(_storageRootFolder, '/'))
                     };
                     
                     var percent = Math.floor(processedCount / filesToProcessCount * 100);
@@ -493,7 +490,7 @@ function generateXml(){
     writer.endDocument();
 
     var xml = writer.toString();
-    _fs.writeFileSync(_path.join(_dropboxFolder, '.myStream.dat'), xml);
+    _fs.writeFileSync(_path.join(_storageRootFolder, '.myStream.dat'), xml);
 
     // clean dirty records
     for (var i = 0 ; i < dirty.length ; i ++){
@@ -530,7 +527,7 @@ function scanAllFiles (callback){
         return;
     _busyReadingFiles = true;
 
-    var root = _scanFolder.replace(/\\/g, '/');
+    var root = toUnixPaths(_storageRootFolder); 
 
     setStatus('Scanning files, this can take a while ... ');
     
@@ -586,46 +583,45 @@ function onAppReady(){
  */
 function setStateBasedOnScanFolder(){
     
-    if (!_scanFolder)
+    if (!_storageRootFolder)
         return;
-
-    _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
 
     _pathSelectedContent.style.visibility = 'visible';
     _scanFolderWrapper.style.visibility = 'visible';
-    _scanFolderDisplay.innerHTML = _scanFolder;
+    _scanFolderDisplay.innerHTML = _storageRootFolder;
 
-    if (_dropboxFolder === null){
-        setStatus('Error : Your music folder is not in your Dropbox folder');
-    } else {
+    if (_storageRootFolder === null){
+        setStatus('Error : Your selected music folder is not in your Dropbox/NextCloud folder');
+        return;
+    }
 
-        scanAllFiles(function(){
+    scanAllFiles(function(){
 
-            _watcher = _chokidar.watch([_scanFolder], {
-                persistent: true,
-                ignoreInitial : true,
-                awaitWriteFinish: {
-                    stabilityThreshold: 2000,
-                    pollInterval: 100
-                }
+        _watcher = _chokidar.watch([_storageRootFolder], {
+            persistent: true,
+            ignoreInitial : true,
+            awaitWriteFinish: {
+                stabilityThreshold: 2000,
+                pollInterval: 100
+            }
+        });
+        
+        // start watched for file changes
+        _watcher
+            .on('add', function(p) {
+                registerFileChange(p, 'add');
+            })
+            .on('change', function(p){
+                registerFileChange(p, 'change');
+            })
+            .on('unlink', function(p){
+                registerFileChange(p, 'delete');
             });
             
-            // start watched for file changes
-            _watcher
-                .on('add', function(p) {
-                    registerFileChange(p, 'add');
-                })
-                .on('change', function(p){
-                    registerFileChange(p, 'change');
-                })
-                .on('unlink', function(p){
-                    registerFileChange(p, 'delete');
-                });
-                
-            // start handler for observed file changes    
-            setInterval(function(){
-                handleFileChanges();
-            }, 1000);
-        });
-    }
+        // start handler for observed file changes    
+        setInterval(function(){
+            handleFileChanges();
+        }, 1000);
+    });
+    
 }

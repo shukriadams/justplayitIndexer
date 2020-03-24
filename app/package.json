@@ -9,13 +9,13 @@
   "license": "MIT",
   "main": "background.js",
   "dependencies": {
-    "auto-launch" : "5.0.1",
-    "lokijs" : "1.5.5",
-    "electron-config" : "0.2.1",
+    "auto-launch": "5.0.1",
+    "lokijs": "1.5.5",
+    "electron-config": "0.2.1",
     "fs-jetpack": "^0.9.0",
-    "jsmediatags" : "3.8.1",
-    "multi-glob" : "1.0.1",
-    "xml-writer" : "1.6.0",
-    "chokidar" : "1.6.0"
+    "jsmediatags": "3.8.1",
+    "multi-glob": "1.0.1",
+    "xml-writer": "1.6.0",
+    "chokidar": "1.6.0"
   }
 }
