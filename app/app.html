@@ -14,27 +14,21 @@
 
                 <div class="settingsItem bordered">
                     <div>
-                        <button class="button btnSelectRoot"> Add my Dropox/NextCloud folder</button>
+                        <button class="button btnSelectRoot"> Add Dropbox / NextCloud folder</button>
                     </div>
 
                     <div class="subscript">
-                        (all music in this folder will be added)
+                        (all music in this will be indexed)
                     </div>
                     
                     <div class="scanFolderWrapper">
-                        <span>Your music is in : </span> <span class="scanFolder"></span>
+                        <span>Your folder is </span> <span class="scanFolder"></span>
                     </div>
-                </div>
-
-
-
-                <div class="settingsItem pathSelectedContent">
-                    <button class="button btnReindex">Reindex now</button>
                 </div>
 
                 <div class="settingsItem bordered">
                     <input id="cbAutostart" class="cbAutostart" type="checkbox" />
-                    <label for="cbAutostart">Start when Windows starts</label>
+                    <label for="cbAutostart">Start indexer when Windows starts</label>
                 </div>
 
                 <div class="settingsSection">
@@ -43,8 +37,16 @@
                     <a class="settingsItemMinor openLog">View errors</a>
                     <div class="settingsItemMinor currentAction"></div>
                 </div>
-            </div>
 
+                <div class="settingsItem pathSelectedContent">
+                    <button class="button btnReindex">Force reindex</button>
+                    <p>
+                        Reindexing is automatic, but if your file changes aren't showing up, 
+                        you can force a re-read.
+                    </p>
+                </div>
+
+            </div>
             
         </div>
     </body>
