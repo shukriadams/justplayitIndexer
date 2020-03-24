@@ -2,7 +2,7 @@
   "name": "myStreamCCIndexer",
   "productName": "myStreamCCIndexer",
   "description": "Indexes music files for myStream.cc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Shukri Adams <info@myStream.cc>",
   "copyright": "© 2016, Shukri Adams",
   "homepage": "http://myStream.cc",

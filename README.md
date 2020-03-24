@@ -14,18 +14,16 @@ Note for Windows - this project cannot be run in Vagrant or any VirtualBox host 
 
 ### Setup
 
-- Install Node 6.x
-- in / set up boilerplate with
+- Install Node 6.x or higher.
+- Run
 
     npm install 
-
-- in /app set up custom dependencies
-
-    npm install 
+    cd /app
+    npm install
 
 ### Dev
   
-- in /
+- Run
 
     npm start
 
@@ -33,7 +31,7 @@ To test the app, point it to a folder containing a ".dropbox" subfolder, this is
 
 ### Build 
 
-- in /
+- Run
 
     npm run release     
 
