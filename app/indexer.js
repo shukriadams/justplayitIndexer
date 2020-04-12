@@ -5,6 +5,7 @@ var _path = require('path'),
     _AutoLaunch = require('auto-launch'),
     _fs = require('fs'),
     _os = require('os'),
+    _jsonfile = require('jsonfile'),
     _electron = require('electron'),
     _Config = require('electron-config'),
     _lokijs = require('lokijs'),
@@ -15,6 +16,7 @@ var _path = require('path'),
     _scanFolderDisplay = document.querySelector('.scanFolder'),
     _currentAction = document.querySelector('.currentAction'),
     _cbAutostart = document.querySelector('.cbAutostart'),
+    _cbStartMinimized = document.querySelector('.cbStartMinimized'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _filesFoundCount = document.querySelector('.filesFoundCount'),
     _status = document.querySelector('.status'),
@@ -37,6 +39,7 @@ var _path = require('path'),
     _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
     _storageRootFolder = _config.get('storageRoot'),
     _isAutostarting = _config.get('autoStart'),
+    _isStartMinimized = _config.get('startMinimized'),
     _errorsOccurred = false,
     _mode = '',
     _tray = null;    
@@ -80,6 +83,10 @@ function onLokiReady(){
         _isAutostarting = false;
     _cbAutostart.checked = _isAutostarting;
 
+    if (_isStartMinimized === undefined || _isStartMinimized === null)
+        _isStartMinimized = false;
+    _cbStartMinimized.checked = _isStartMinimized;
+
     // set autostart service for next time app starts
     if (_cbAutostart)
         _autoLaunch.enable();
@@ -111,6 +118,10 @@ function onLokiReady(){
             _autoLaunch.enable();
         else
             _autoLaunch.disable();
+    });
+
+    _cbStartMinimized.addEventListener('change', function() {
+        _config.set('startMinimized', _cbStartMinimized.checked);
     });
 
     _openLogLink.addEventListener('click', function(){
@@ -177,8 +188,14 @@ function bindMainWindowEvents(){
         if (mainWindow || attempts > 20){
             clearInterval(mainWindowFindTimer);
             _mainWindow = mainWindow;
-            if (mainWindow)
+            if (mainWindow){
                 bind();
+                // autohide indexer on start, this isn't the best way of doing it
+                // as you can still see app starting
+                if (_isStartMinimized)
+                    mainWindow.hide();
+            }
+
         }
         
     }, 500);
@@ -473,8 +490,12 @@ function generateXml(){
 
         var id3 = fileData.tagData;
 
-        if (!id3 || !id3.album || !id3.artist || !id3.name)
+        // file isn't fully tagged - warn user about this
+        if (!id3 || !id3.album || !id3.artist || !id3.name){
+            writeToLog(`${ id3.clippedPath} isn't properly tagged`);
+            _errorsOccurred = true;
             continue;
+        }
 
         writer.startElement('item');
         writer.writeAttribute('album', id3.album);
@@ -490,7 +511,12 @@ function generateXml(){
     writer.endDocument();
 
     var xml = writer.toString();
-    _fs.writeFileSync(_path.join(_storageRootFolder, '.myStream.dat'), xml);
+    _fs.writeFileSync(_path.join(_storageRootFolder, '.myStream.xml'), xml);
+    // write status data for fast reading
+    let status = {
+        date : new Date().getTime()
+    }
+    _jsonfile.writeFileSync(_path.join(_storageRootFolder, '.myStream-status.json'), status);
 
     // clean dirty records
     for (var i = 0 ; i < dirty.length ; i ++){

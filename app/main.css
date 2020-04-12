@@ -10,7 +10,6 @@ body {
     font-size: 14px;
     text-align: center;
     height: 100%;
-    width: 100%;
     padding:12px;
     margin: 0;
     display:table;
@@ -74,7 +73,7 @@ h2 {
 }
 
 .settingsItemMinor {
-    padding-bottom: 4px;
+    padding: 0 8px 4px 8px;
     min-height: 20px; /*force height to stop ui hoppping when this element is emptied*/
     overflow: hidden;       
     white-space: nowrap;
