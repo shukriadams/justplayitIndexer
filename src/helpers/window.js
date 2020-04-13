@@ -70,12 +70,11 @@ export default function (name, options) {
         if (!win.isMinimized() && !win.isMaximized()) {
             Object.assign(state, getCurrentPosition());
         }
-        userDataDir.write(stateStoreFile, state, { atomic: true });
+        userDataDir.write(stateStoreFile, Object.assign(state, options), { atomic: true });
     };
 
     state = ensureVisibleOnSomeDisplay(restore());
-
-    win = new BrowserWindow(Object.assign({}, options, state));
+    win = new BrowserWindow(Object.assign({}, state, options));
 
     win.on('close', saveState);
 

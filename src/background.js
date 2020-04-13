@@ -35,7 +35,8 @@ app.on('ready', function () {
 
     var mainWindow = createWindow('main', {
         width: 400,
-        height: 500
+        height: 500,
+        resizable: true
     });
 
     mainWindow.loadURL('file://' + __dirname + '/app.html');
