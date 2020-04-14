@@ -189,7 +189,11 @@ function bindMainWindowEvents(){
             clearInterval(mainWindowFindTimer);
             _mainWindow = mainWindow;
             if (mainWindow){
+
                 bind();
+                // hide menu
+                mainWindow.setMenu(null)
+
                 // autohide indexer on start, this isn't the best way of doing it
                 // as you can still see app starting
                 if (_isStartMinimized)

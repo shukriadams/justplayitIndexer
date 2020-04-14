@@ -4,62 +4,78 @@
         <meta charset="UTF-8">
         <title>myStream.cc Indexer</title>
         <link rel="stylesheet" href="main.css" type="text/css">
+        <link rel="stylesheet" href="components/glu_verticalTabs/glu_verticalTabs.css" type="text/css">
     </head>
     <body>
-        <div class="contentWrapper">
-            <div class="settings">
-                
-                <h2>myStream.cc Indexer</h2>
+        
 
+        <div class="glu_verticalTabs">
 
-                <div class="settingsItem bordered">
-                    <div>
-                        <button class="button btnSelectRoot"> Add Dropbox / NextCloud folder</button>
+            <!-- Tabs -->
+            <ul class="glu_verticalTabs-tabs">
+                <li class="glu_verticalTabs-tab" data-tab="settings">
+                    <div class="glu_verticalTabs-text">Settings</div>
+                </li>
+                <!-- duplicate data-tab="some value" the panel the tab is linked to -->
+                <li class="glu_verticalTabs-tab" data-tab="music">
+                    <div class="glu_verticalTabs-text">Music</div>
+                    <div class="glu_verticalTabs-alert">55+</div>
+                </li>
+            </ul>
+
+            <!-- Content panels -->
+            <ul class="glu_verticalTabs-panels">
+                <li class="glu_verticalTabs-panel" data-tab="music">
+                    <div class="settingsSection">
+                        <div class="settingsItemMinor filesFoundCount"></div>
+                        <div>
+                            <span class="settingsItemMinor status"></span><a class="settingsItemMinor openLog">View errors</a>
+                        </div>
+                        
+                        <div class="settingsItemMinor currentAction"></div>
+                    </div>
+    
+                    <div class="settingsItem pathSelectedContent">
+                        <button class="button btnReindex">Force reindex</button>
+                        <p>
+                            Reindexing is automatic, but if your file changes aren't showing up, 
+                            you can force a re-read.
+                        </p>
+                    </div>
+                </li>
+                <li class="glu_verticalTabs-panel" data-tab="settings">
+                    <div class="settingsItem bordered">
+                        <div>
+                            <button class="button btnSelectRoot"> Add Dropbox / NextCloud folder</button>
+                        </div>
+    
+                        <div class="subscript">
+                            (all music in this will be indexed)
+                        </div>
+                        
+                        <div class="scanFolderWrapper">
+                            <span>Your folder is </span> <span class="scanFolder"></span>
+                        </div>
+                    </div>
+                    <div class="settingsItem bordered">
+                        <div>
+                            <input id="cbAutostart" class="cbAutostart" type="checkbox" />
+                            <label for="cbAutostart">Start automatically when Windows starts</label>
+                        </div>
+                        <div>
+                            <input id="cbStartMinimized" class="cbStartMinimized" type="checkbox" />
+                            <label for="cbStartMinimized">Start minimized</label>
+                        </div>
                     </div>
 
-                    <div class="subscript">
-                        (all music in this will be indexed)
-                    </div>
-                    
-                    <div class="scanFolderWrapper">
-                        <span>Your folder is </span> <span class="scanFolder"></span>
-                    </div>
-                </div>
+                </li>
+            </ul>
 
-                <div class="settingsItem bordered">
-                    <div>
-                        <input id="cbAutostart" class="cbAutostart" type="checkbox" />
-                        <label for="cbAutostart">Start automatically when Windows starts</label>
-                    </div>
-                    <div>
-                        <input id="cbStartMinimized" class="cbStartMinimized" type="checkbox" />
-                        <label for="cbStartMinimized">Start minimized</label>
-                    </div>
-                </div>
-
-                <div class="settingsSection">
-                    <div class="settingsItemMinor filesFoundCount"></div>
-                    <div>
-                        <span class="settingsItemMinor status"></span><a class="settingsItemMinor openLog">View errors</a>
-                    </div>
-                    
-                    <div class="settingsItemMinor currentAction"></div>
-                </div>
-
-                <div class="settingsItem pathSelectedContent">
-                    <button class="button btnReindex">Force reindex</button>
-                    <p>
-                        Reindexing is automatic, but if your file changes aren't showing up, 
-                        you can force a re-read.
-                    </p>
-                </div>
-
-            </div>
-            
         </div>
     </body>
 
     <script>
         require('./indexer.js')
+        require('./components/glu_verticalTabs/glu_verticalTabs.js')
     </script>
 </html>

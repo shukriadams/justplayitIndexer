@@ -1,0 +1,107 @@
+/***************************************************************
+ * Functional
+ **************************************************************/
+ .glu_verticalTabs {
+    position: relative;
+    display: grid;
+}
+
+.glu_verticalTabs-tabs {
+    grid-column: 1 / 2;
+    padding: 0;
+    margin: 0;
+    position: relative;
+}
+
+.glu_verticalTabs-tab {
+    cursor: pointer;
+    list-style: none;
+    position: relative;
+    width: 100%;
+}
+
+.glu_verticalTabs-tab.glu_verticalTabs-tab--active{
+    cursor: default;
+}
+
+/* text alert that can be displayed in a tab */
+.glu_verticalTabs-alert {
+    border-radius: 50%;
+    position: absolute;         /* positions alert circle relative to tab text */
+    display: flex;              /* centers alert text vertically and horizontally */
+    justify-content: center;    /* centers alert text vertically and horizontally */
+    align-items: center;        /* centers alert text vertically and horizontally */
+    pointer-events: none;
+}
+
+/* text with in tab */
+.glu_verticalTabs-text {
+    pointer-events: none;
+}
+
+/* contains all panels */
+.glu_verticalTabs-panels {
+    grid-column: 2 / 2;
+    padding: 0;
+    height: 100%;
+    margin: 0;    
+    vertical-align: top;
+}
+
+/* content associated with each tab - only 1 is displayed */
+.glu_verticalTabs-panel {
+    display: none;
+    height: 100%;
+}
+
+.glu_verticalTabs-panel.glu_verticalTabs-panel--visible {
+    display: block;
+}
+
+/***************************************************************
+ * Visual - these should be overridden
+ **************************************************************/
+.glu_verticalTabs {
+    /* override to set width of tab */
+    grid-template-columns: 100px calc(100% - 100px);
+    height: 100%;
+    width: 100%;
+}
+
+.glu_verticalTabs-tabs {
+    background-color: var(--color-doveGray);
+}
+
+.glu_verticalTabs-tab {
+    height: 68px;
+}
+
+.glu_verticalTabs-tab.glu_verticalTabs-tab--active{
+    background-color: var(--color-tiaMaria);
+    font-weight: bold;
+}
+
+.glu_verticalTabs-alert {
+    height: 20px;
+    width: 20px;
+    background-color: var(--color-guardsManRed);
+    font-size: 12px;
+    top: 22px;                  /* positions alert circle relative to tab text */
+    right: 6px;                 /* positions alert circle relative to tab text */
+}
+
+.glu_verticalTabs-panels {
+}
+
+
+
+.glu_verticalTabs-panel {
+    padding: 12px;
+}
+
+.glu_verticalTabs-text {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: var(--universalMargin);
+}

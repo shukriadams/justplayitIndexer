@@ -1,36 +1,33 @@
+:root {
+    --universalMargin: 8px;
+    --color-nero: #2c2c2c;
+    --color-doveGray:#707070;
+    --color-tiaMaria: #ce4e0a;
+    --color-guardsManRed:#d20000;
+    --color-white: #fff;
+}
+
 html {
     height: 100%;
     width: 100%;
 }
 
 body {
-    background-color: #2c2c2c;
-    color: white;
+    background-color: var(--color-nero);
+    color: var(--color-white);
     font-family: sans-serif;
     font-size: 14px;
-    text-align: center;
     height: 100%;
-    padding:12px;
     margin: 0;
-    display:table;
     overflow: hidden;
 }
 
-h2 {
-    font-size:2em;
-    letter-spacing: -0.06em;
-}
-
-.contentWrapper {
-    display:table-cell;
-    vertical-align: middle;
-}
-
 .button {
-    background-color:#ce4e0a;
-    color:white;
+    background-color:var(--color-tiaMaria);
+    cursor: pointer;
+    color:var(--color-white);
     border-style: none;
-    padding: 10px 20px;
+    padding: var(--universalMargin) calc(var(--universalMargin)*2);
 }
 
 .button.button--disable {
