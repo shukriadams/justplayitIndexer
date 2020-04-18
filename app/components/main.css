@@ -24,8 +24,9 @@ a {
 }
 
 .openLog{
+    color: var(--color-persimmon);
     cursor: pointer;
-    visibility: hidden;
+    display: none;
 }
 
 .pathSelectedContent {
@@ -37,18 +38,26 @@ a {
     visibility: hidden;
 }
 
+.filesTableFilterLabel{
+    cursor: pointer;
+}
+
 .allFilesTableWrapper{
-    overflow-y: scroll;
+    background-color: var(--color-mineShaft);
+    overflow-y: auto;
     overflow-x: hidden;
     max-height: 100%;
+    max-width: calc(100vw - var(--layout-verticalTabWidth) - 2*(var(--universalMargin)));
 }
 
 .allFilesTableRow{
+    padding-bottom: calc(var(--universalMargin) /2);
+    padding-top: calc(var(--universalMargin) /2);
     white-space: nowrap;
 }
 
 .allFilesTableRow--error {
-    color: var(--color-guardsManRed);
+    color: var(--color-persimmon);
 }
 
 .settingsItemMinor {
@@ -56,13 +65,6 @@ a {
     min-height: 20px; /*force height to stop ui hoppping when this element is emptied*/
     overflow: hidden;       
     white-space: nowrap;
-}
-
-.filesFoundCount {
-    height: 16px;
-    min-width: 16px;
-    max-height: 16px;
-    overflow: hidden    
 }
 
 .currentAction {

@@ -22,9 +22,12 @@ var _path = require('path'),
     _cbStartMinimized = document.querySelector('.cbStartMinimized'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _filesFoundCount = document.querySelector('.filesFoundCount'),
-    _noScanFolderWrapper = document.querySelector('.noScanFolderWrapper'),
+    _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
+    _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
     _focusSettings = document.querySelector('.focusSettings'),
     _status = document.querySelector('.status'),
+    _filesTableFilterErrors = document.querySelector('[id="filesTableFilterErrors"]'),
+    _filesTableFilterAll = document.querySelector('[id="filesTableFilterAll"]'),
     _openLogLink = document.querySelector('.openLog'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
     _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
@@ -117,6 +120,7 @@ function onLokiReady(){
 
         setStorageRootFolder(null);
         setStateBasedOnScanFolder();
+        fillFileTable();
     }, false);
 
     //
@@ -134,7 +138,16 @@ function onLokiReady(){
             setStorageRootFolder(folder[0]);
 
         setStateBasedOnScanFolder();
+        fillFileTable();
     }, false);
+
+    _filesTableFilterErrors.addEventListener('change', function() {
+        fillFileTable();
+    });
+    
+    _filesTableFilterAll.addEventListener('change', function() {
+        fillFileTable();
+    });
 
     _cbAutostart.addEventListener('change', function() {
         _config.set('autoStart', _cbAutostart.checked);
@@ -257,7 +270,7 @@ function setStatus(status){
  * 
  */ 
 function filesFound(count){
-    _filesFoundCount.innerHTML = (count ? count : 'No') + ' files found';
+    
 }
     
 
@@ -300,17 +313,39 @@ function writeToLog(text){
  * Renders the table showing all files found
  */
 function fillFileTable(){
-    var allFiles = _fileDataCollection.find({ });
-    let html = '';
-    for (let file of allFiles){
-        let filePath = file.file;
-        let errorClass = file.isValid ? '' : 'allFilesTableRow--error';
-        if (_storageRootFolder)
-        filePath = filePath.substring(_storageRootFolder.length);
+    const selectedFilter = document.querySelector('[name="filesTableFilter"]:checked').value;
+    var allFiles = _fileDataCollection.find({ }),
+        errors = 0,
+        html = '';
 
-        html += `<div class="allFilesTableRow ${errorClass}">${filePath}</div>`;
+    for (let file of allFiles){
+        if (!file.isValid)
+            errors ++;   
+
+        if (selectedFilter === 'errors' && file.isValid)
+            continue;
+
+        let filePath = file.file,
+            errorClass = file.isValid ? '' : 'allFilesTableRow--error';
+
+        if (_storageRootFolder)
+            filePath = filePath.substring(_storageRootFolder.length);
+
+        html += `<li class="allFilesTableRow ${errorClass}">${filePath}</li>`;
     }
+
     _allFilesTable.innerHTML = html;
+
+    _filesFoundCount.innerHTML = `Found ${allFiles.length ? allFiles.length : 'no'} files. `;;
+
+
+    if (errors){
+        _openLogLink.style.display = 'inline-block';
+        _openLogLink.innerHTML = `View ${errors} errors`
+    } else {
+        _openLogLink.style.display = 'none';
+    }
+
 }
 
 
@@ -329,16 +364,14 @@ function handleFileChanges(){
     if (_busyReadingFiles)
         return;
 
+    if (!_storageRootFolder)
+        return;
+
     _filesChanged = false;
     _busyReadingFiles = true;
     _errorsOccurred = false;
     _btnReindex.classList.add('button--disable');
-    _openLogLink.style.visibility = 'hidden';
 
-    if (_storageRootFolder === null){
-        setStatus('The path you selected is not within a Dropbox folder.');
-        return;
-    }
 
     // clear output log
     _fs.writeFileSync(_outputLogFile, '');
@@ -346,8 +379,6 @@ function handleFileChanges(){
     var processedCount = 0,
         allProperties = Object.keys(_allFiles),
         filesToProcessCount = allProperties.length;
-
-    filesFound(filesToProcessCount);
 
     var intervalBusy = false;
 
@@ -526,7 +557,7 @@ function generateXml(){
         writer.writeAttribute('path', id3.clippedPath);
         writer.endElement();
 
-        setStatus('Indexing ' + lineoutcount + ' of ' + id3Array.length + ', ' + id3.artist + ' ' + id3.name);
+        setStatus(`Indexing ${lineoutcount} of ${id3Array.length}, ${id3.artist} ${id3.name}`);
     }
 
     writer.endElement();
@@ -560,9 +591,6 @@ function generateXml(){
 
     setStatus('Indexing complete');
     _btnReindex.classList.remove('button--disable');
-
-    if (_errorsOccurred)
-        _openLogLink.style.visibility = 'visible';
 }
 
 
@@ -587,7 +615,6 @@ function scanAllFiles (callback){
         if (er)
             throw er;
 
-        filesFound(files.length);
         setStatus('');
 
         _allFiles = {};
@@ -650,12 +677,14 @@ function setStateBasedOnScanFolder(){
     _scanFolderWrapper.style.visibility = 'hidden';
     _pathSelectedContent.style.visibility = 'hidden';
     _scanFolderWrapper.style.visibility = 'hidden';
-    _noScanFolderWrapper.style.display = 'block';
+    _noScanFolderContent.style.display = 'block';
+    _scanFolderSelectedContent.style.display = 'none';
 
     if (!_storageRootFolder)
         return;
 
-    _noScanFolderWrapper.style.display = 'none';
+    _scanFolderSelectedContent.style.display = 'block';
+    _noScanFolderContent.style.display = 'none';
     _pathSelectedContent.style.visibility = 'visible';
     _scanFolderWrapper.style.visibility = 'visible';
     _scanFolderDisplay.innerHTML = _storageRootFolder;

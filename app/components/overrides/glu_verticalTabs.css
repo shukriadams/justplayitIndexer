@@ -1,0 +1,38 @@
+.glu_verticalTabs {
+    /* override to set width of tab */
+    grid-template-columns: var(--layout-verticalTabWidth) auto;
+    height: 100%;
+    width: 100%;
+}
+
+.glu_verticalTabs-tabs {
+    background-color: var(--color-mineShaft);
+}
+
+.glu_verticalTabs-tab {
+    height: 68px;
+}
+
+.glu_verticalTabs-tab.glu_verticalTabs-tab--active{
+    background-color: var(--color-tiaMaria);
+    font-weight: bold;
+}
+
+.glu_verticalTabs-alert {
+    height: 20px;
+    width: 20px;
+    background-color: var(--color-guardsManRed);
+    font-size: 12px;
+    top: 22px;                  /* positions alert circle relative to tab text */
+    right: 6px;                 /* positions alert circle relative to tab text */
+}
+
+.glu_verticalTabs-panel {
+    padding: var(--universalMargin);
+    /* use vh to take up entire app height. minus height for static controls*/
+    height: calc(100vh - var(--layout-verticalTabWidth)); 
+}
+
+.glu_verticalTabs-text {
+    left: var(--universalMargin);
+}
