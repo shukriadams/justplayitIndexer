@@ -15,12 +15,6 @@ body {
     overflow: hidden;
 }
 
-.subscript {
-    font-size: 12px;
-    padding: 15px 0 20px 0;
-    color: #9e9e9e;
-}
-
 .scanFolder {
     font-weight: bold;
 }
@@ -40,24 +34,13 @@ body {
     visibility: hidden;
 }
 
-.settingsSection {
-    padding: 16px 0;
-}
 
-.settingsItem {
-    padding-bottom: 15px;
-    padding-top: 15px;
-}
 
 .settingsItemMinor {
     padding: 0 8px 4px 8px;
     min-height: 20px; /*force height to stop ui hoppping when this element is emptied*/
     overflow: hidden;       
     white-space: nowrap;
-}
-
-.settingsItem.bordered {
-    border-bottom: 1px solid #3a3939;
 }
 
 .filesFoundCount {

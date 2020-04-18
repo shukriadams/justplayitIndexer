@@ -5,6 +5,7 @@
         <title>myStream.cc Indexer</title>
         <link rel="stylesheet" href="components/main/variables.css" type="text/css">
         <link rel="stylesheet" href="components/main.css" type="text/css">
+        <link rel="stylesheet" href="components/type/type.css" type="text/css">
         <link rel="stylesheet" href="components/button/button.css" type="text/css">
         <link rel="stylesheet" href="components/form/form.css" type="text/css">
         <link rel="stylesheet" href="components/layout/layout.css" type="text/css">
@@ -29,31 +30,13 @@
 
             <!-- Content panels -->
             <ul class="glu_verticalTabs-panels">
-                <li class="glu_verticalTabs-panel" data-tab="music">
-                    <div class="settingsSection">
-                        <div class="settingsItemMinor filesFoundCount"></div>
-                        <div>
-                            <span class="settingsItemMinor status"></span><a class="settingsItemMinor openLog">View errors</a>
-                        </div>
-                        
-                        <div class="settingsItemMinor currentAction"></div>
-                    </div>
-    
-                    <div class="settingsItem pathSelectedContent">
-                        <button class="button btnReindex">Force reindex</button>
-                        <p>
-                            Reindexing is automatic, but if your file changes aren't showing up, 
-                            you can force a re-read.
-                        </p>
-                    </div>
-                </li>
                 <li class="glu_verticalTabs-panel" data-tab="settings">
-                    <div class="settingsItem bordered">
-                        <div>
+                    <div class="layout_section layout_section--bordered">
+                        <div class="layout_row">
                             <button class="button btnSelectRoot"> Add Dropbox / NextCloud folder</button>
                         </div>
     
-                        <div class="subscript">
+                        <div class="layout_row type_subscript">
                             (all music in this will be indexed)
                         </div>
                         
@@ -61,7 +44,7 @@
                             <span>Your folder is </span> <span class="scanFolder"></span>
                         </div>
                     </div>
-                    <div class="settingsItem bordered">
+                    <div class="layout_section layout_section--bordered">
                         <div class="layout_row">
                             <input id="cbAutostart" class="cbAutostart" type="checkbox" />
                             <label class="form-checkboxLabel" for="cbAutostart">Start automatically</label>
@@ -73,6 +56,24 @@
                     </div>
 
                 </li>
+                <li class="glu_verticalTabs-panel" data-tab="music">
+                    <div>
+                        <div class="settingsItemMinor filesFoundCount"></div>
+                        <div>
+                            <span class="settingsItemMinor status"></span><a class="settingsItemMinor openLog">View errors</a>
+                        </div>
+                        
+                        <div class="settingsItemMinor currentAction"></div>
+                    </div>
+    
+                    <div class="layout_sectio pathSelectedContent">
+                        <button class="button btnReindex">Force reindex</button>
+                        <p>
+                            Reindexing is automatic, but if your file changes aren't showing up, 
+                            you can force a re-read.
+                        </p>
+                    </div>
+                </li>                
             </ul>
 
         </div>
