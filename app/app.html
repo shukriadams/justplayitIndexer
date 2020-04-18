@@ -3,7 +3,11 @@
     <head>
         <meta charset="UTF-8">
         <title>myStream.cc Indexer</title>
-        <link rel="stylesheet" href="main.css" type="text/css">
+        <link rel="stylesheet" href="components/main/variables.css" type="text/css">
+        <link rel="stylesheet" href="components/main.css" type="text/css">
+        <link rel="stylesheet" href="components/button/button.css" type="text/css">
+        <link rel="stylesheet" href="components/form/form.css" type="text/css">
+        <link rel="stylesheet" href="components/layout/layout.css" type="text/css">
         <link rel="stylesheet" href="components/glu_verticalTabs/glu_verticalTabs.css" type="text/css">
     </head>
     <body>
@@ -58,13 +62,13 @@
                         </div>
                     </div>
                     <div class="settingsItem bordered">
-                        <div>
+                        <div class="layout_row">
                             <input id="cbAutostart" class="cbAutostart" type="checkbox" />
-                            <label for="cbAutostart">Start automatically when Windows starts</label>
+                            <label class="form-checkboxLabel" for="cbAutostart">Start automatically</label>
                         </div>
                         <div>
                             <input id="cbStartMinimized" class="cbStartMinimized" type="checkbox" />
-                            <label for="cbStartMinimized">Start minimized</label>
+                            <label class="form-checkboxLabel" for="cbStartMinimized">Start minimized</label>
                         </div>
                     </div>
 

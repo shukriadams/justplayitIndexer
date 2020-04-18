@@ -34,8 +34,10 @@ app.on('ready', function () {
     setApplicationMenu();
 
     var mainWindow = createWindow('main', {
-        width: 400,
         height: 500,
+        minHeight: 500,
+        width: 400,
+        minWidth: 400,
         resizable: true
     });
 

@@ -1,11 +1,4 @@
-:root {
-    --universalMargin: 8px;
-    --color-nero: #2c2c2c;
-    --color-doveGray:#707070;
-    --color-tiaMaria: #ce4e0a;
-    --color-guardsManRed:#d20000;
-    --color-white: #fff;
-}
+
 
 html {
     height: 100%;
@@ -20,19 +13,6 @@ body {
     height: 100%;
     margin: 0;
     overflow: hidden;
-}
-
-.button {
-    background-color:var(--color-tiaMaria);
-    cursor: pointer;
-    color:var(--color-white);
-    border-style: none;
-    padding: var(--universalMargin) calc(var(--universalMargin)*2);
-}
-
-.button.button--disable {
-    opacity: .5;
-    pointer-events: none;
 }
 
 .subscript {
