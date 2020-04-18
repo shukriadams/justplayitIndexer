@@ -15,12 +15,15 @@ body {
     overflow: hidden;
 }
 
+a {
+    color: var(--color-tiaMaria);
+}
+
 .scanFolder {
     font-weight: bold;
 }
 
 .openLog{
-    color:#ce4e0a;
     cursor: pointer;
     visibility: hidden;
 }
@@ -33,8 +36,6 @@ body {
 .scanFolderWrapper {
     visibility: hidden;
 }
-
-
 
 .settingsItemMinor {
     padding: 0 8px 4px 8px;

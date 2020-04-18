@@ -15,10 +15,13 @@ var _path = require('path'),
     _pathSelectedContent = document.querySelector('.pathSelectedContent'),
     _scanFolderDisplay = document.querySelector('.scanFolder'),
     _currentAction = document.querySelector('.currentAction'),
+    _removeScanFolder = document.querySelector('.removeScanFolder'),
     _cbAutostart = document.querySelector('.cbAutostart'),
     _cbStartMinimized = document.querySelector('.cbStartMinimized'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _filesFoundCount = document.querySelector('.filesFoundCount'),
+    _noScanFolderWrapper = document.querySelector('.noScanFolderWrapper'),
+    _focusSettings = document.querySelector('.focusSettings'),
     _status = document.querySelector('.status'),
     _openLogLink = document.querySelector('.openLog'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
@@ -95,20 +98,39 @@ function onLokiReady(){
 
     setStateBasedOnScanFolder();
 
-    _btnSelectRoot.addEventListener('click', function(){
+    // bind UI event handlers
 
-        var folder = _dialog.showOpenDialog({
+    // unbinds scan folder
+    _removeScanFolder.addEventListener('click', function(){
+        const approved = _dialog.showMessageBox({
+            type: 'question',
+            buttons: ['No', 'Yes'],
+            title: 'Confirm',
+            message: 'Are you sure you want to unbind this folder? (You can always rebind it again)'
+        });
+
+        if(!approved)
+            return;
+
+        setStorageRootFolder(null);
+        setStateBasedOnScanFolder();
+    }, false);
+
+    //
+    _focusSettings.addEventListener('click', function() {
+        window.__glu_verticalTabs['mainTabs'].focusNamed('settings')
+    });
+
+    // binds scan folder
+    _btnSelectRoot.addEventListener('click', function(){
+        const folder = _dialog.showOpenDialog({
             properties: ['openDirectory']
         });
 
-        if (folder && folder.length){
-            _storageRootFolder = folder[0];
-            _config.set('storageRoot', _storageRootFolder);
-            _allFiles = {}; // force reset content
-        }
+        if (folder && folder.length)
+            setStorageRootFolder(folder[0]);
 
         setStateBasedOnScanFolder();
-
     }, false);
 
     _cbAutostart.addEventListener('change', function() {
@@ -234,32 +256,6 @@ function setStatus(status){
 function filesFound(count){
     _filesFoundCount.innerHTML = (count ? count : 'No') + ' files found';
 }
-
-
-/**
- * Resolves path fragment from scanFolder to get to storage root root. Returns null
- * if no path found.
- */
-function resolveStoragePathFragment(startFolder){
-
-    var current = startFolder;
-
-    do {
-        // is current folder root?
-        if (current === _storageRootFolder){
-            return toUnixPaths(current);
-        }
-
-        var parent = _path.join(current, '../');
-        if (current === parent)
-            break;
-
-        current = parent;    
-    }
-    while(_fs.existsSync(current));
-
-    return null;
-};
     
 
 /** 
@@ -607,23 +603,33 @@ function onAppReady(){
 }
 
 
+/** 
+ * The only place we set storageFolder.
+ */
+function setStorageRootFolder(folder){
+    _storageRootFolder = folder;
+    _config.set('storageRoot', folder);
+}
+
+
 /**
  * Initialize watcher for file changes. This happens on app start, and when a new watch
  * folder is selected.
  */
 function setStateBasedOnScanFolder(){
-    
+    // force defaults
+    _scanFolderWrapper.style.visibility = 'hidden';
+    _pathSelectedContent.style.visibility = 'hidden';
+    _scanFolderWrapper.style.visibility = 'hidden';
+    _noScanFolderWrapper.style.visibility = 'visible';
+
     if (!_storageRootFolder)
         return;
 
+    _noScanFolderWrapper.style.visibility = 'hidden';
     _pathSelectedContent.style.visibility = 'visible';
     _scanFolderWrapper.style.visibility = 'visible';
     _scanFolderDisplay.innerHTML = _storageRootFolder;
-
-    if (_storageRootFolder === null){
-        setStatus('Error : Your selected music folder is not in your Dropbox/NextCloud folder');
-        return;
-    }
 
     scanAllFiles(function(){
 
