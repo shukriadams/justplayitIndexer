@@ -21,10 +21,11 @@
                 <li class="glu_verticalTabs-tab" data-tab="settings">
                     <div class="glu_verticalTabs-text">Settings</div>
                 </li>
-                <!-- duplicate data-tab="some value" the panel the tab is linked to -->
                 <li class="glu_verticalTabs-tab" data-tab="music">
                     <div class="glu_verticalTabs-text">Music</div>
-                    <div class="glu_verticalTabs-alert">55+</div>
+                </li>
+                <li class="glu_verticalTabs-tab" data-tab="log">
+                    <div class="glu_verticalTabs-text">Log</div>
                 </li>
             </ul>
 
@@ -62,29 +63,43 @@
 
                 </li>
                 <li class="glu_verticalTabs-panel" data-tab="music">
-                    <div class="noScanFolderWrapper">
+                    <div class="layout_section noScanFolderWrapper">
                         <p>
                             To find your music, go to <a class="focusSettings" href="javascript:void(0)">Settings</a> and select a folder to scan.
                         </p>
                     </div>
 
-                    <div>
-                        <div class="settingsItemMinor filesFoundCount"></div>
-                        <div>
-                            <span class="settingsItemMinor status"></span><a class="settingsItemMinor openLog">View errors</a>
+                    <div class="layout_section">
+                        <div class="layout_row">
+                            <span class="filesFoundCount"></span>
                         </div>
-                        
-                        <div class="settingsItemMinor currentAction"></div>
+                        <div class="layout_row">
+                            <span class="settingsItemMinor status"></span>
+                            <a class="settingsItemMinor openLog">View errors</a>
+                        </div>
+                        <div class="layout_row">
+                            <span class="currentAction"></span>
+                        </div>
                     </div>
     
-                    <div class="layout_sectio pathSelectedContent">
-                        <button class="button btnReindex">Force reindex</button>
-                        <p>
+                    <div class="layout_section pathSelectedContent">
+                        <p class="type_subscript">
                             Reindexing is automatic, but if your file changes aren't showing up, 
                             you can force a re-read.
                         </p>
+                        <button class="button btnReindex">Force reindex</button>
                     </div>
-                </li>                
+                </li>
+
+                <li class="glu_verticalTabs-panel" data-tab="log">
+                    <div class="allFilesTableWrapper">
+                        <div class="allFilesTable"></div>
+                    </div>
+                    <div>
+                        <input type="radio">All files
+                        <input type="radio">Errors only
+                    </div>
+                </li>               
             </ul>
 
         </div>

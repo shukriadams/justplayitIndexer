@@ -5,6 +5,7 @@ var _path = require('path'),
     _AutoLaunch = require('auto-launch'),
     _fs = require('fs'),
     _os = require('os'),
+    _jsmediatags = require('jsmediatags'),
     _jsonfile = require('jsonfile'),
     _electron = require('electron'),
     _Config = require('electron-config'),
@@ -17,6 +18,7 @@ var _path = require('path'),
     _currentAction = document.querySelector('.currentAction'),
     _removeScanFolder = document.querySelector('.removeScanFolder'),
     _cbAutostart = document.querySelector('.cbAutostart'),
+    _allFilesTable = document.querySelector('.allFilesTable'),
     _cbStartMinimized = document.querySelector('.cbStartMinimized'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _filesFoundCount = document.querySelector('.filesFoundCount'),
@@ -97,6 +99,7 @@ function onLokiReady(){
         _autoLaunch.disable();
 
     setStateBasedOnScanFolder();
+    fillFileTable();
 
     // bind UI event handlers
 
@@ -294,6 +297,24 @@ function writeToLog(text){
 
 
 /**
+ * Renders the table showing all files found
+ */
+function fillFileTable(){
+    var allFiles = _fileDataCollection.find({ });
+    let html = '';
+    for (let file of allFiles){
+        let filePath = file.file;
+        let errorClass = file.isValid ? '' : 'allFilesTableRow--error';
+        if (_storageRootFolder)
+        filePath = filePath.substring(_storageRootFolder.length);
+
+        html += `<div class="allFilesTableRow ${errorClass}">${filePath}</div>`;
+    }
+    _allFilesTable.innerHTML = html;
+}
+
+
+/**
  * Called when music files in the watched folder change. Reads mp3 tags for all files found, 
  * then writes XML from those tags. All files are read for any change because all data has to 
  * written to a single index file. 
@@ -328,8 +349,7 @@ function handleFileChanges(){
 
     filesFound(filesToProcessCount);
 
-    var intervalBusy = false,
-        jsmediatags = require('jsmediatags');
+    var intervalBusy = false;
 
     var timer = setInterval(function(){
 
@@ -347,6 +367,7 @@ function handleFileChanges(){
             clearInterval(timer);
             setProgress('');
             generateXml();
+            fillFileTable();
             intervalBusy = false;
             return;
         }
@@ -383,7 +404,7 @@ function handleFileChanges(){
         }
 
         // reads tags from file, this is slow hence loki caching
-        jsmediatags.read(file, {
+        _jsmediatags.read(file, {
             onSuccess: function(tag) {
 
                 processedCount ++;
@@ -400,9 +421,10 @@ function handleFileChanges(){
                         artist : tag.tags.artist,
                         clippedPath : toUnixPaths(fileNormalized.replace(_storageRootFolder, '/'))
                     };
-                    
+                    fileCachedData.isValid = isTagValid( fileCachedData.tagData);
+
                     var percent = Math.floor(processedCount / filesToProcessCount * 100);
-                    setProgress(percent + '% : ' + tag.tags.title + ' - ' + tag.tags.artist);
+                    setProgress(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
 
                     if (insert)
                         _fileDataCollection.insert(fileCachedData);
@@ -491,7 +513,7 @@ function generateXml(){
         var id3 = fileData.tagData;
 
         // file isn't fully tagged - warn user about this
-        if (!id3 || !id3.album || !id3.artist || !id3.name){
+        if (!isTagValid(id3)){
             writeToLog(`${ id3.clippedPath} isn't properly tagged`);
             _errorsOccurred = true;
             continue;
@@ -603,6 +625,13 @@ function onAppReady(){
 }
 
 
+function isTagValid(tag){
+    return tag 
+        && tag.album 
+        && tag.artist 
+        && tag.name;
+}
+
 /** 
  * The only place we set storageFolder.
  */
@@ -621,12 +650,12 @@ function setStateBasedOnScanFolder(){
     _scanFolderWrapper.style.visibility = 'hidden';
     _pathSelectedContent.style.visibility = 'hidden';
     _scanFolderWrapper.style.visibility = 'hidden';
-    _noScanFolderWrapper.style.visibility = 'visible';
+    _noScanFolderWrapper.style.display = 'block';
 
     if (!_storageRootFolder)
         return;
 
-    _noScanFolderWrapper.style.visibility = 'hidden';
+    _noScanFolderWrapper.style.display = 'none';
     _pathSelectedContent.style.visibility = 'visible';
     _scanFolderWrapper.style.visibility = 'visible';
     _scanFolderDisplay.innerHTML = _storageRootFolder;

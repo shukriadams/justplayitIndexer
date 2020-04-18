@@ -63,13 +63,13 @@
  **************************************************************/
 .glu_verticalTabs {
     /* override to set width of tab */
-    grid-template-columns: 100px calc(100% - 100px);
+    grid-template-columns: 100px auto;
     height: 100%;
     width: 100%;
 }
 
 .glu_verticalTabs-tabs {
-    background-color: var(--color-doveGray);
+    background-color: var(--color-mineShaft);
 }
 
 .glu_verticalTabs-tab {
@@ -90,13 +90,10 @@
     right: 6px;                 /* positions alert circle relative to tab text */
 }
 
-.glu_verticalTabs-panels {
-}
-
-
-
 .glu_verticalTabs-panel {
     padding: 12px;
+    /* use vh to take up entire app height*/
+    height: 100vh;
 }
 
 .glu_verticalTabs-text {
