@@ -102,7 +102,6 @@ function onLokiReady(){
         _autoLaunch.disable();
 
     setStateBasedOnScanFolder();
-    fillFileTable();
 
     // bind UI event handlers
 
@@ -118,9 +117,17 @@ function onLokiReady(){
         if(!approved)
             return;
 
+        // need to delete existing index
+        const indexPath = getIndexPath();
+        if (_fs.existsSync(indexPath))
+            _fs.unlinkSync(indexPath);
+
+        const statusPath = getStatusPath();
+        if (_fs.existsSync(statusPath))
+            _fs.unlinkSync(statusPath);
+
         setStorageRootFolder(null);
         setStateBasedOnScanFolder();
-        fillFileTable();
     }, false);
 
     //
@@ -137,8 +144,8 @@ function onLokiReady(){
         if (folder && folder.length)
             setStorageRootFolder(folder[0]);
 
+        _filesChanged = true;
         setStateBasedOnScanFolder();
-        fillFileTable();
     }, false);
 
     _filesTableFilterErrors.addEventListener('change', function() {
@@ -265,14 +272,6 @@ function setStatus(status){
     _status.innerHTML = status;
 }
 
-
-/**
- * 
- */ 
-function filesFound(count){
-    
-}
-    
 
 /** 
  *  1) scan all fires - store in array
@@ -563,13 +562,17 @@ function generateXml(){
     writer.endElement();
     writer.endDocument();
 
-    var xml = writer.toString();
-    _fs.writeFileSync(_path.join(_storageRootFolder, '.myStream.xml'), xml);
+    const xml = writer.toString(),
+        indexPath = getIndexPath();
+
+    _fs.writeFileSync(indexPath, xml);
     // write status data for fast reading
     let status = {
         date : new Date().getTime()
     }
-    _jsonfile.writeFileSync(_path.join(_storageRootFolder, '.myStream-status.json'), status);
+    
+    const statusPath = getStatusPath();
+    _jsonfile.writeFileSync(statusPath, status);
 
     // clean dirty records
     for (var i = 0 ; i < dirty.length ; i ++){
@@ -668,6 +671,20 @@ function setStorageRootFolder(folder){
 }
 
 
+function getIndexPath(){
+    if (!_storageRootFolder)
+        throw 'Invalid call - storage path not set';
+
+    return _path.join(_storageRootFolder, '.myStream.xml');
+}
+
+function getStatusPath(){
+    if (!_storageRootFolder)
+        throw 'Invalid call - storage path not set';
+
+    return _path.join(_storageRootFolder, '.myStream.json');
+}
+
 /**
  * Initialize watcher for file changes. This happens on app start, and when a new watch
  * folder is selected.
@@ -680,8 +697,15 @@ function setStateBasedOnScanFolder(){
     _noScanFolderContent.style.display = 'block';
     _scanFolderSelectedContent.style.display = 'none';
 
-    if (!_storageRootFolder)
+    if (!_storageRootFolder){
+        //force wipe everything
+        _fileDataCollection.clear();
+        _lokijsdb.saveDatabase();
+
+
+        fillFileTable();
         return;
+    }
 
     _scanFolderSelectedContent.style.display = 'block';
     _noScanFolderContent.style.display = 'none';

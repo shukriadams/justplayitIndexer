@@ -5,16 +5,13 @@
     width: 100%;
 }
 
-.glu_verticalTabs-tabs {
-    background-color: var(--color-mineShaft);
-}
-
 .glu_verticalTabs-tab {
+    background-color: var(--color-tiaMaria);
     height: 68px;
 }
 
 .glu_verticalTabs-tab.glu_verticalTabs-tab--active{
-    background-color: var(--color-tiaMaria);
+    background-color: var(--color-mineShaft);
     font-weight: bold;
 }
 
