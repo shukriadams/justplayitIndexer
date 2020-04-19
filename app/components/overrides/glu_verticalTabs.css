@@ -26,6 +26,7 @@
 
 .glu_verticalTabs-panels {
     height:100vh;
+    width: calc(100vw - 90px);  /* still not sure why we have to compenate width here*/
 }
 
 .glu_verticalTabs-panel {

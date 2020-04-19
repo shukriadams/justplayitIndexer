@@ -2,6 +2,7 @@
 
 var 
     _path = require('path'),
+    _process =require('process'),
     _AutoLaunch = require('auto-launch'),
     _fs = require('fs-extra'),
     _electron = require('electron'),
@@ -152,22 +153,6 @@ var
  */
 function bindMainWindowEvents(){
 
-    function bind(){
-
-        _mainWindow.on('minimize',function(e){
-            e.preventDefault();
-            _mainWindow.hide();
-        });
-    
-        _mainWindow.on('close', function (e) {
-            if( !_electron.remote.app.isQuiting){
-                e.preventDefault();
-                _mainWindow.hide();
-            }
-            return false;
-        });
-    }
-
     var attempts = 0,
     mainWindowFindTimer = setInterval(function(){
         attempts ++;
@@ -184,18 +169,32 @@ function bindMainWindowEvents(){
         if (mainWindow || attempts > 20){
             clearInterval(mainWindowFindTimer);
             _mainWindow = mainWindow;
-            if (mainWindow){
+            
+            // if main window still wasn't found, kill app and exit, we can't recover from this
+            if (!mainWindow)
+                return _process.exit(1);
 
-                bind();
-                
-                // hide menu
-                mainWindow.setMenu(null)
+            _mainWindow.on('minimize',function(e){
+                e.preventDefault();
+                _mainWindow.hide();
+            });
+        
+            _mainWindow.on('close', function (e) {
+                if( !_electron.remote.app.isQuiting){
+                    e.preventDefault();
+                    _mainWindow.hide();
+                }
+                return false;
+            });
 
-                // autohide indexer on start, this isn't the best way of doing it
-                // as you can still see app starting
-                if (_isStartMinimized)
-                    mainWindow.hide();
-            }
+            // hide menu
+            mainWindow.setMenu(null)
+
+            // autohide indexer on start, this isn't the best way of doing it
+            // as you can still see app starting
+            if (_isStartMinimized)
+                mainWindow.hide();
+        
 
         }
         

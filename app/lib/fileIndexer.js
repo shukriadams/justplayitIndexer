@@ -223,14 +223,13 @@ module.exports = class {
                 else
                     this._fileTable.update(fileCachedData);
             } catch(ex){
-                var message = '';
+                let message;
 
-                if (ex.type && ex.type === 'tagfail'){
-                    message = file + ' tag read fail.';
-                } else {
-                    message = file + ' could not be read, is it properly tagged?';
-                }
-
+                if (ex.type && ex.type === 'tagfail')
+                    message = `${file} tag read fail.`;
+                else 
+                    message = `${file} could not be read, is it properly tagged?`;
+                
                 fileCachedData.dirty = false;
                 fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
                 fileCachedData.tagData  = null;
