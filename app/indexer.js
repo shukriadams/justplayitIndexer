@@ -3,14 +3,9 @@
 var 
     _path = require('path'),
     _AutoLaunch = require('auto-launch'),
-    _fs = require('fs'),
-    _os = require('os'),
-    _jsmediatags = require('jsmediatags'),
-    _jsonfile = require('jsonfile'),
+    _fs = require('fs-extra'),
     _electron = require('electron'),
     _Config = require('electron-config'),
-    _lokijs = require('lokijs'),
-    _isTagValid = require('./lib/istagValid'),
     _btnReindex = document.querySelector('.btnReindex'),
     _btnSelectRoot = document.querySelector('.btnSelectRoot'),
     _pathSelectedContent = document.querySelector('.pathSelectedContent'),
@@ -30,62 +25,27 @@ var
     _filesTableFilterAll = document.querySelector('[id="filesTableFilterAll"]'),
     _openLogLink = document.querySelector('.openLog'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
-    _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
-    FileSystemState = require('./lib/fileSystemState'),
-    _fileSystemState = null,
-    _scanInterval,
-    _lokijsdb = new _lokijs(_lokijsPath),
-    _fileDataCollection,
+    FileWatcher = require('./lib/fileWatcher'),
+    _fileWatcher = null,
+    FileIndexer = require('./lib/fileIndexer'),
+    _fileIndexer = null,
     _mainWindow,
     _Tray = _electron.remote.Tray,
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
-    _busyReadingFiles = false,
     _outputLogFile = _path.join(_dataFolder, 'output.log'),
     _config = new _Config(),
     _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
     _storageRootFolder = _config.get('storageRoot'),
     _isAutostarting = _config.get('autoStart'),
     _isStartMinimized = _config.get('startMinimized'),
-    _errorsOccurred = false,
-    _mode = '',
     _tray = null;    
 
-if (!_fs.existsSync(_dataFolder))
-    _fs.mkdirSync(_dataFolder);
 
-// starts everything
-if (_mode === 'debug'){
-    setTimeout(() => {
-       initLoki(); 
-    }, 1000);
-} else 
-    initLoki();
+// starts things up
+(async function(){
 
-function initLoki(){
-    (async function(){
-        // load lokidb, this is async
-        if (_fs.existsSync(_lokijsPath)){
-            _lokijsdb.loadDatabase({}, async function(){
-                _fileDataCollection = _lokijsdb.getCollection('fileData');
-                await onLokiReady();
-            });
-        } else {
-            _fileDataCollection = _lokijsdb.addCollection('fileData',{ unique:['file']});
-            await onLokiReady();
-        }
-    })()
-}
-
-// continues after loki db has initialized
-async function onLokiReady(){
-
-    // if loki hasn't loaded, its json file is corrupt, 
-    if (!_fileDataCollection){
-        _fs.unlink(_lokijsPath);
-        console.log('loki file corrupt, resetting');
-        return initLoki();
-    }
+    await _fs.ensureDir(_dataFolder);
 
     // set state of "auto start" checkbox
     if (_isAutostarting === undefined || _isAutostarting === null)
@@ -118,16 +78,10 @@ async function onLokiReady(){
         if(!approved)
             return;
 
-        // need to delete existing index
-        const indexPath = getIndexPath();
-        if (_fs.existsSync(indexPath))
-            _fs.unlinkSync(indexPath);
-
-        const statusPath = getStatusPath();
-        if (_fs.existsSync(statusPath))
-            _fs.unlinkSync(statusPath);
-
+        // clean this p
+        await _fileIndexer.wipe();
         setStorageRootFolder(null);
+        fillFileTable();
         await setStateBasedOnScanFolder();
     }, false);
 
@@ -147,7 +101,7 @@ async function onLokiReady(){
 
         await setStateBasedOnScanFolder();
         // force dirty to rescan
-        _fileSystemState.dirty = true;
+        _fileWatcher.dirty = true;
     }, false);
 
     _filesTableFilterErrors.addEventListener('change', function() {
@@ -176,13 +130,8 @@ async function onLokiReady(){
     });
 
     _btnReindex.addEventListener('click', async function() {
-        _fileDataCollection.clear(); // force flush collection
-        _lokijsdb.saveDatabase();
-
-        // force rescan and dirty for reindex
-        await _fileSystemState.rescan();
-        _fileSystemState.dirty = true;
-
+         // force rescan and dirty
+        await _fileWatcher.rescan(true);
     }, false);
 
     bindMainWindowEvents();
@@ -194,7 +143,7 @@ async function onLokiReady(){
     if (_electron.remote.app.isReady()){
         onAppReady();
     }
-}
+})();
 
 
 /** 
@@ -254,10 +203,6 @@ function bindMainWindowEvents(){
 }
 
 
-function toUnixPaths(path){
-    return path.replace(/\\/g, '/');
-}
-
 /**
  * Writes current action to UI. Only one action is displayed at a time. Use this to inform user what app is currently
  * doing.
@@ -276,23 +221,11 @@ function setStatus(status){
 
 
 /**
- * Writes item to output log. Log should be for errors only, not general status. Log is cleared each time app
- * starts.
- */
-function writeToLog(text){
-    _fs.appendFile(_outputLogFile, text + _os.EOL, function(err){
-        if (err)
-            console.log(err);
-    });
-}
-
-
-/**
  * Renders the table showing all files found
  */
 function fillFileTable(){
     const selectedFilter = document.querySelector('[name="filesTableFilter"]:checked').value;
-    var allFiles = _fileDataCollection.find({ }),
+    var allFiles = _fileIndexer.getAllFiles(),
         errors = 0,
         html = '';
 
@@ -333,255 +266,6 @@ function fillFileTable(){
 
 
 /**
- * Called when music files in the watched folder change. Reads mp3 tags for all files found, 
- * then writes XML from those tags. All files are read for any change because all data has to 
- * written to a single index file. 
- * 
- * This can be optimized by 
- */
-function handleFileChanges(){
-
-    if (!_fileSystemState.dirty)
-        return;
-
-    if (_busyReadingFiles)
-        return;
-
-    if (!_storageRootFolder)
-        return;
-
-    _fileSystemState.dirty = false;
-    _busyReadingFiles = true;
-    _errorsOccurred = false;
-    _btnReindex.classList.add('button--disable');
-
-
-    // clear output log
-    _fs.writeFileSync(_outputLogFile, '');
-
-    var processedCount = 0,
-        allProperties = Object.keys(_fileSystemState.files),
-        filesToProcessCount = allProperties.length;
-
-    var intervalBusy = false;
-
-    var timer = setInterval(function(){
-
-        if (intervalBusy)
-            return;
-
-        intervalBusy = true;
-
-        _busyReadingFiles = true;
-
-        // check if all objects have been processed, if so write xml from loki and exit
-        if (processedCount === filesToProcessCount - 1){
-            _busyReadingFiles = false;
-            _lokijsdb.saveDatabase();
-            clearInterval(timer);
-            setProgress('');
-            generateXml();
-            fillFileTable();
-            intervalBusy = false;
-            return;
-        }
-
-        var file = allProperties[processedCount];
-
-        // ensure file exists, during deletes this list can be slow to update
-        if (!_fs.existsSync(file)) {
-            _fileSystemState.remove(file);
-            processedCount ++;
-            intervalBusy = false;
-            return;
-        }
-
-        // check if file data is cached in loki, and if file was updated since then
-        var fileStats,
-            fileCachedData = _fileDataCollection.by('file', file);
-
-        if (fileCachedData){
-            fileStats = _fs.statSync(file);
-            if (fileStats.mtime.toString() === fileCachedData.mtime){
-                processedCount ++;
-                intervalBusy = false;
-                return;
-            }
-        }
-
-        var insert = false;
-        if (!fileCachedData){
-            fileCachedData = {
-                file : file
-            };
-            insert = true;
-        }
-
-        // reads tags from file, this is slow hence loki caching
-        _jsmediatags.read(file, {
-            onSuccess: function(tag) {
-
-                processedCount ++;
-
-                if (tag.type === 'ID3' || tag.type === 'MP4'){
-                    var fileNormalized = toUnixPaths(file);
-
-                    fileCachedData.dirty = true;
-                    fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                    fileCachedData.tagData = {
-                        name : tag.tags.title,
-                        album : tag.tags.album,
-                        track : tag.tags.track,
-                        artist : tag.tags.artist,
-                        clippedPath : toUnixPaths(fileNormalized.replace(_storageRootFolder, '/'))
-                    };
-                    fileCachedData.isValid = _isTagValid( fileCachedData.tagData);
-
-                    var percent = Math.floor(processedCount / filesToProcessCount * 100);
-                    setProgress(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
-
-                    if (insert)
-                        _fileDataCollection.insert(fileCachedData);
-                    else
-                        _fileDataCollection.update(fileCachedData);
-                }
-
-                intervalBusy = false;
-            },
-            onError: function(error) {
-                processedCount ++;
-                var message = '';
-
-                if (error.type && error.type === 'tagfail'){
-                    message = file + ' tag read fail.';
-                } else {
-                    message = file + ' could not be read, is it properly tagged?';
-                }
-
-                fileCachedData.dirty = false;
-                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                fileCachedData.tagData  = null;
-
-                if (insert)
-                    _fileDataCollection.insert(fileCachedData);
-                else
-                    _fileDataCollection.update(fileCachedData);
-
-                writeToLog(message + ' : ' + JSON.stringify(error));
-                _errorsOccurred = true;
-                intervalBusy = false;
-            }
-        }); // timer function
-    }, 2); // timer
-
-}
-
-
-/**
- * Writes XML index file from data in filesystemState.files hash table.
- */ 
-function generateXml(){
-    var writer = null;
-    
-    // abort if busy, will be called again
-    if (_busyReadingFiles)
-        return;
-
-    // check for dirty files
-    var dirty = _fileDataCollection.find({dirty : true});
-    if (!dirty.length)
-    {
-        setStatus('');
-        _btnReindex.classList.remove('button--disable');
-        return;
-    }
-
-    setStatus('Indexing ... ');
-
-    // force rebuild array, this tends to lag behind
-    var allProperties = Object.keys(_fileSystemState.files),
-        lineoutcount = 0,
-        id3Array = [],
-        XMLWriter = require('xml-writer'),
-        writer = new XMLWriter();
-
-    writer.startDocument();
-    writer.startElement('items');
-    writer.writeAttribute('date', new Date().getTime());
-
-    for (var i = 0 ; i < allProperties.length ; i ++) {
-
-        lineoutcount ++;
-
-        // abort if busy, will be called again
-        if (_busyReadingFiles)
-            return;
-
-        var fileData = _fileDataCollection.by('file', allProperties[i]);
-        if (!fileData)
-            continue; // this should never happen
-
-        if (!fileData.tagData)
-            continue;
-
-        var id3 = fileData.tagData;
-
-        // file isn't fully tagged - warn user about this
-        if (!_isTagValid(id3)){
-            writeToLog(`${ id3.clippedPath} isn't properly tagged`);
-            _errorsOccurred = true;
-            continue;
-        }
-
-        writer.startElement('item');
-        writer.writeAttribute('album', id3.album);
-        writer.writeAttribute('artist', id3.artist);
-        writer.writeAttribute('name', id3.name);
-        writer.writeAttribute('path', id3.clippedPath);
-        writer.endElement();
-
-        setStatus(`Indexing ${lineoutcount} of ${id3Array.length}, ${id3.artist} ${id3.name}`);
-    }
-
-    writer.endElement();
-    writer.endDocument();
-
-    const xml = writer.toString(),
-        indexPath = getIndexPath();
-
-    _fs.writeFileSync(indexPath, xml);
-    // write status data for fast reading
-    let status = {
-        date : new Date().getTime()
-    }
-    
-    const statusPath = getStatusPath();
-    _jsonfile.writeFileSync(statusPath, status);
-
-    // clean dirty records
-    for (var i = 0 ; i < dirty.length ; i ++){
-        var record = dirty[i];
-        record.dirty = false;
-        _fileDataCollection.update(record);
-    }
-
-    // remove orphans
-    var orphans = _fileDataCollection.where(function(r){
-        return allProperties.indexOf(r.file) === -1;
-    });
-
-    for (var i = 0 ; i < orphans.length ; i ++) {
-        _fileDataCollection.remove(orphans[i]);
-    }
-
-    _lokijsdb.saveDatabase();
-
-    setStatus('Indexing complete');
-    _btnReindex.classList.remove('button--disable');
-}
-
-
-/**
  * Does final setup stuff when app is ready
  */
 function onAppReady(){
@@ -611,19 +295,17 @@ function setStorageRootFolder(folder){
     _config.set('storageRoot', folder);
 }
 
-
-function getIndexPath(){
-    if (!_storageRootFolder)
-        throw 'Invalid call - storage path not set';
-
-    return _path.join(_storageRootFolder, '.myStream.xml');
+async function handleIndexinStart(){
+    _btnReindex.classList.add('button--disable');
 }
 
-function getStatusPath(){
-    if (!_storageRootFolder)
-        throw 'Invalid call - storage path not set';
+async function handleIndexinDone(){
+    _btnReindex.classList.remove('button--disable');
+    fillFileTable();
+}
 
-    return _path.join(_storageRootFolder, '.myStream.json');
+async function handleStatus(status){
+    setStatus(status)
 }
 
 /**
@@ -638,14 +320,8 @@ async function setStateBasedOnScanFolder(){
     _noScanFolderContent.style.display = 'block';
     _scanFolderSelectedContent.style.display = 'none';
 
-    if (!_storageRootFolder){
-        //force wipe everything
-        _fileDataCollection.clear();
-        _lokijsdb.saveDatabase();
-
-        fillFileTable();
+    if (!_storageRootFolder)
         return;
-    }
 
     _scanFolderSelectedContent.style.display = 'block';
     _noScanFolderContent.style.display = 'none';
@@ -654,19 +330,15 @@ async function setStateBasedOnScanFolder(){
     _scanFolderDisplay.innerHTML = _storageRootFolder;
 
 
-    _fileSystemState = new FileSystemState(_storageRootFolder);
-    _fileSystemState.onStatusChange=(status)=>{
-        setStatus(status)
-    }
+    _fileWatcher = new FileWatcher(_storageRootFolder);
+    _fileWatcher.onStatusChange(handleStatus);
+    await _fileWatcher.start();
 
-    await _fileSystemState.start();
-    
-    if (_scanInterval)
-        clearInterval(_scanInterval);
+    if (_fileIndexer)
+        _fileIndexer.dispose();
 
-    // start handler for observed file changes    
-    _scanInterval= setInterval(function(){
-        handleFileChanges();
-    }, 1000);
-   
+    _fileIndexer = new FileIndexer(_fileWatcher);
+    _fileIndexer.onIndexingStart(handleIndexinStart)
+    _fileIndexer.onIndexingDone(handleIndexinDone)
+    await _fileIndexer.start();
 }

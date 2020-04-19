@@ -100,7 +100,7 @@ module.exports = class {
    /**
     * Rescans files. Exposed to allow for manual rescanning.
     */
-   async rescan(){
+   async rescan(forceDirty = false){
       return new Promise((resolve, reject)=>{
          try {
             if (this._busyScanning)
@@ -117,18 +117,21 @@ module.exports = class {
                globPaths.push(path.join(root, '**/*' + this.watchedExtensions[i]));
       
             glob(globPaths, { }, (er, files)=>{
+               this._busyScanning = false;
+               this._setStatus('');
+               this.files = {};
+
                if (er)
                   return reject(er);
       
-               this._setStatus('');
-      
-               this.files = {};
                for (var i = 0 ; i < files.length ; i ++)
                   this.files[files[i]] = {
                      file : files[i] 
                   };
-      
-               this._busyScanning = false;
+                  
+               if (forceDirty)
+                  this.dirty  = true
+
                resolve();
             });
          } catch(ex){
