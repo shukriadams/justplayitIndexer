@@ -24,6 +24,7 @@ module.exports = class {
       this.watchPath = watchPath;
       this.chokidar = null;
       this._busyScanning = false;
+      this.onStatusChanged = null;
    }
 
    /**
@@ -77,12 +78,13 @@ module.exports = class {
       this.dirty = true;
    }
 
-   /**
-    * Exposes a "files changed" event to whatever needs to subscribe to this.
-    * @param {*} callback 
-    */
-   onFilesChanged(callback){
+   onStatusChange(callback){
+      this.onStatusChanged = callback;
+   }
 
+   _setStatus(status){
+      if (this.onStatusChanged)
+         this.onStatusChanged(status);
    }
 
 
@@ -108,7 +110,7 @@ module.exports = class {
       
             var root = pathHelper.toUnixPath(this.watchPath); 
       
-            // setStatus('Scanning files, this can take a while ... ');
+            this._setStatus('Scanning files, this can take a while ... ');
             
             var globPaths = [];
             for (var i = 0; i <  this.watchedExtensions.length ; i ++)
@@ -118,7 +120,7 @@ module.exports = class {
                if (er)
                   return reject(er);
       
-               // setStatus('');
+               this._setStatus('');
       
                this.files = {};
                for (var i = 0 ; i < files.length ; i ++)

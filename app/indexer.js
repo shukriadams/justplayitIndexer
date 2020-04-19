@@ -1,6 +1,7 @@
 'use strict';
 
-var _path = require('path'),
+var 
+    _path = require('path'),
     _AutoLaunch = require('auto-launch'),
     _fs = require('fs'),
     _os = require('os'),
@@ -39,7 +40,6 @@ var _path = require('path'),
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
     _busyReadingFiles = false,
-    _filesChanged = false,
     _outputLogFile = _path.join(_dataFolder, 'output.log'),
     _config = new _Config(),
     _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
@@ -62,20 +62,22 @@ if (_mode === 'debug'){
     initLoki();
 
 function initLoki(){
-    // load lokidb, this is async
-    if (_fs.existsSync(_lokijsPath)){
-        _lokijsdb.loadDatabase({}, function(){
-            _fileDataCollection = _lokijsdb.getCollection('fileData');
-            onLokiReady();
-        });
-    } else {
-        _fileDataCollection = _lokijsdb.addCollection('fileData',{ unique:['file']});
-        onLokiReady();
-    }
+    (async function(){
+        // load lokidb, this is async
+        if (_fs.existsSync(_lokijsPath)){
+            _lokijsdb.loadDatabase({}, async function(){
+                _fileDataCollection = _lokijsdb.getCollection('fileData');
+                await onLokiReady();
+            });
+        } else {
+            _fileDataCollection = _lokijsdb.addCollection('fileData',{ unique:['file']});
+            await onLokiReady();
+        }
+    })()
 }
 
 // continues after loki db has initialized
-function onLokiReady(){
+async function onLokiReady(){
 
     // if loki hasn't loaded, its json file is corrupt, 
     if (!_fileDataCollection){
@@ -99,12 +101,12 @@ function onLokiReady(){
     else
         _autoLaunch.disable();
 
-    setStateBasedOnScanFolder();
+    await setStateBasedOnScanFolder();
 
     // bind UI event handlers
 
     // unbinds scan folder
-    _removeScanFolder.addEventListener('click', function(){
+    _removeScanFolder.addEventListener('click', async function(){
         const approved = _dialog.showMessageBox({
             type: 'question',
             buttons: ['No', 'Yes'],
@@ -125,7 +127,7 @@ function onLokiReady(){
             _fs.unlinkSync(statusPath);
 
         setStorageRootFolder(null);
-        setStateBasedOnScanFolder();
+        await setStateBasedOnScanFolder();
     }, false);
 
     //
@@ -134,7 +136,7 @@ function onLokiReady(){
     });
 
     // binds scan folder
-    _btnSelectRoot.addEventListener('click', function(){
+    _btnSelectRoot.addEventListener('click', async function(){
         const folder = _dialog.showOpenDialog({
             properties: ['openDirectory']
         });
@@ -142,8 +144,9 @@ function onLokiReady(){
         if (folder && folder.length)
             setStorageRootFolder(folder[0]);
 
-        _filesChanged = true;
-        setStateBasedOnScanFolder();
+        await setStateBasedOnScanFolder();
+        // force dirty to rescan
+        _filesFoundCount.dirty = true;
     }, false);
 
     _filesTableFilterErrors.addEventListener('change', function() {
@@ -175,9 +178,9 @@ function onLokiReady(){
         _fileDataCollection.clear(); // force flush collection
         _lokijsdb.saveDatabase();
 
-        // force rescan
+        // force rescan and dirty for reindex
         await _fileSystemState.rescan();
-        _filesChanged = true;
+        _filesFoundCount.dirty = true;
 
     }, false);
 
@@ -337,7 +340,7 @@ function fillFileTable(){
  */
 function handleFileChanges(){
 
-    if (!_filesChanged)
+    if (!_filesFoundCount.dirty)
         return;
 
     if (_busyReadingFiles)
@@ -346,7 +349,7 @@ function handleFileChanges(){
     if (!_storageRootFolder)
         return;
 
-    _filesChanged = false;
+    _filesFoundCount.dirty = false;
     _busyReadingFiles = true;
     _errorsOccurred = false;
     _btnReindex.classList.add('button--disable');
@@ -480,11 +483,11 @@ function generateXml(){
     var writer = null;
     
     // abort if busy, will be called again
-    if (_filesChanged || _busyReadingFiles)
+    if (_busyReadingFiles)
         return;
 
     // check for dirty files
-    var dirty = _fileDataCollection.find({dirty :  true});
+    var dirty = _fileDataCollection.find({dirty : true});
     if (!dirty.length)
     {
         setStatus('');
@@ -510,7 +513,7 @@ function generateXml(){
         lineoutcount ++;
 
         // abort if busy, will be called again
-        if (_filesChanged || _busyReadingFiles)
+        if (_busyReadingFiles)
             return;
 
         var fileData = _fileDataCollection.by('file', allProperties[i]);
@@ -608,8 +611,6 @@ function onAppReady(){
 }
 
 
-
-
 /** 
  * The only place we set storageFolder.
  */
@@ -637,7 +638,7 @@ function getStatusPath(){
  * Initialize watcher for file changes. This happens on app start, and when a new watch
  * folder is selected.
  */
-function setStateBasedOnScanFolder(){
+async function setStateBasedOnScanFolder(){
     // force defaults
     _scanFolderWrapper.style.visibility = 'hidden';
     _pathSelectedContent.style.visibility = 'hidden';
@@ -661,16 +662,16 @@ function setStateBasedOnScanFolder(){
     _scanFolderWrapper.style.visibility = 'visible';
     _scanFolderDisplay.innerHTML = _storageRootFolder;
 
-    (async function(){
 
-        _fileSystemState = new FileSystemState(_storageRootFolder);
-        await _fileSystemState.start();
-
-        // start handler for observed file changes    
-        setInterval(function(){
-            handleFileChanges();
-        }, 1000);
+    _fileSystemState = new FileSystemState(_storageRootFolder);
+    _fileSystemState.onStatusChange=(status)=>{
+        setStatus(status)
+    }
+    await _fileSystemState.start();
     
-    })()
-    
+    // start handler for observed file changes    
+    setInterval(function(){
+        handleFileChanges();
+    }, 1000);
+   
 }
