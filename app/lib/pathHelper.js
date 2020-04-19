@@ -2,6 +2,7 @@ const
     path = require('path');
 
 module.exports = {
+    
     toUnixPath(path){
         return path.replace(/\\/g, '/'); 
     },

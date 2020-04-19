@@ -22,6 +22,7 @@ var
     _status = document.querySelector('.status'),
     _filesTableFilterErrors = document.querySelector('[id="filesTableFilterErrors"]'),
     _filesTableFilterAll = document.querySelector('[id="filesTableFilterAll"]'),
+    _pathHelper = require('./lib/pathHelper'),
     _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
     _updateErrorLogLink = require('./lib/ui/errorLogLink'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
@@ -96,7 +97,7 @@ var
         });
 
         if (folder && folder.length)
-            setStorageRootFolder(folder[0]);
+            setStorageRootFolder(_pathHelper.toUnixPath(folder[0]));
 
         await setStateBasedOnScanFolder();
         // force dirty to rescan

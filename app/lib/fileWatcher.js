@@ -57,11 +57,13 @@ module.exports = class {
    }
 
    /**
-    * Internal use only, handles per-file change detected by chokidar
+    * Handles per-file change detected by chokidar
     * @param {*} file Full path of file changed
     * @param {*} changeType String descripting action add|change|delete
     */
    _registerFileChange(filePath, changeType){
+      filePath = pathHelper.toUnixPath(filePath);
+
       const extension = path.extname(filePath);
       
       // ignore change if coming from a file type we don't care about
@@ -108,7 +110,7 @@ module.exports = class {
    
             this._busyScanning = true;
       
-            var root = pathHelper.toUnixPath(this.watchPath); 
+            var root = this.watchPath; 
       
             this._setStatus('Scanning files, this can take a while ... ');
             

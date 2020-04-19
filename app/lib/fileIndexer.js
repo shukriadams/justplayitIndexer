@@ -63,9 +63,12 @@ module.exports = class {
         else 
             this._createCollection();
 
-        // start handler for observed file changes    
+        // start timer for observing file changes. We poll constantly
+        // instead of responding to events from fileWatcher because we
+        // often get many clustered events at once causing our event
+        // watcher to clog. This can be made more effecient later
         this._interval= setInterval(async ()=>{
-            await this._startHandlingFileChanges();
+            await this._checkForFileChanges();
         }, 1000);
     }
 
@@ -118,16 +121,20 @@ module.exports = class {
         })
     }
 
-    async _startHandlingFileChanges(){
+    async _checkForFileChanges(){
 
+        // file watcher is where file state is kept
         if (!this._fileWatcher.dirty)
             return;
 
+        // already busy doing an index, exit
         if (this._busy)
             return;
 
-        this._fileWatcher.dirty = false;
         this._busy = true;
+
+        // reset properties used for index state
+        this._fileWatcher.dirty = false;
         this._errorsOccurred = false;
         if (this._onIndexingStart)
             this._onIndexingStart();
@@ -135,7 +142,6 @@ module.exports = class {
         // clear output log
         await fs.outputFile(this.logPath, '');
 
-        // reset 
         this._processedCount = -1;
         this._fileKeys = Object.keys(this._fileWatcher.files),
         this._toProcessCount = this._fileKeys.length;
@@ -144,6 +150,12 @@ module.exports = class {
         this._handleNextFile();
     }
 
+
+    /**
+     * Checks each file on drive for changes. Compare actual file change
+     * date with file data in Loki, if changed or not found, read its
+     * id3 tags
+     */
     async _handleNextFile(){
         setImmediate(async()=>{
             this._processedCount ++;
@@ -170,9 +182,9 @@ module.exports = class {
                 var fileStats,
                     fileCachedData = this._fileTable.by('file', file);
 
+                // file hasn't changed since last update, ignore it
                 if (fileCachedData){
                     fileStats = fs.statSync(file); // todo make async
-                    // if file hasn't changed since last update, ignore it
                     if (fileStats.mtime.toString() === fileCachedData.mtime)
                         return;
                 }
@@ -186,31 +198,32 @@ module.exports = class {
                 }
 
                 let tag = await this._readID3Tag(file);
+                
+                // these are the only tag types we're interested in
+                if (tag.type !== 'ID3' && tag.type !== 'MP4')
+                    return;
 
-                if (tag.type === 'ID3' || tag.type === 'MP4'){
-                    var fileNormalized = pathHelper.toUnixPath(file);
+                var fileNormalized = pathHelper.toUnixPath(file);
 
-                    fileCachedData.dirty = true;
-                    fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                    fileCachedData.tagData = {
-                        name : tag.tags.title,
-                        album : tag.tags.album,
-                        track : tag.tags.track,
-                        artist : tag.tags.artist,
-                        clippedPath : fileNormalized.replace(this._fileWatcher.watchPath, '/')
-                    };
-                    fileCachedData.isValid = isTagValid( fileCachedData.tagData);
+                fileCachedData.dirty = true;
+                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
+                fileCachedData.tagData = {
+                    name : tag.tags.title,
+                    album : tag.tags.album,
+                    track : tag.tags.track,
+                    artist : tag.tags.artist,
+                    clippedPath : fileNormalized.replace(pathHelper.toUnixPath(this._fileWatcher.watchPath), '/')
+                };
+                fileCachedData.isValid = isTagValid( fileCachedData.tagData);
 
-                    var percent = Math.floor(this._processedCount / this._toProcessCount * 100);
-                    if (this._onProgress)
-                        this._onProgress(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
+                var percent = Math.floor(this._processedCount / this._toProcessCount * 100);
+                if (this._onProgress)
+                    this._onProgress(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
 
-                    if (insert)
-                        this._fileTable.insert(fileCachedData);
-                    else
-                        this._fileTable.update(fileCachedData);
-                }
-
+                if (insert)
+                    this._fileTable.insert(fileCachedData);
+                else
+                    this._fileTable.update(fileCachedData);
             } catch(ex){
                 var message = '';
 
@@ -252,18 +265,12 @@ module.exports = class {
             // check for dirty files in loki. If nothing, indexing is done
             var dirty =  this._fileTable.find({dirty : true});
             if (!dirty.length)
-            {
-                // move back to ui
-                //_btnReindex.classList.remove('button--disable');
                 return;
-            }
     
             // setStatus('Indexing ... ');
     
             // force rebuild files key incase we needed to delete items along the way
             var allProperties = Object.keys(this._fileWatcher.files),
-                lineoutcount = 0,
-                id3Array = [],
                 writer = new XMLWriter();
     
             writer.startDocument();
@@ -271,8 +278,6 @@ module.exports = class {
             writer.writeAttribute('date', new Date().getTime());
     
             for (var i = 0 ; i < allProperties.length ; i ++) {
-    
-                lineoutcount ++;
     
                 var fileData = this._fileTable.by('file', allProperties[i]);
                 if (!fileData)
@@ -299,7 +304,7 @@ module.exports = class {
                 writer.writeAttribute('path', id3.clippedPath);
                 writer.endElement();
     
-                // setStatus(`Indexing ${lineoutcount} of ${id3Array.length}, ${id3.artist} ${id3.name}`);
+                // setStatus(`Indexing ${i} of ${id3Array.length}, ${id3.artist} ${id3.name}`);
             }
     
             writer.endElement();
@@ -325,11 +330,12 @@ module.exports = class {
                 this._fileTable.update(record);
             }
     
-            // remove orphans
+            // find orphans
             var orphans = this._fileTable.where(r =>{
                 return allProperties.indexOf(r.file) === -1;
             });
-    
+
+            // remove orphans
             for (var i = 0 ; i < orphans.length ; i ++) {
                 this._fileTable.remove(orphans[i]);
             }
