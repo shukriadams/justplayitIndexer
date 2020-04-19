@@ -35,7 +35,7 @@ var
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
     _config = new _Config(),
-    _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
+    _autoLaunch = new _AutoLaunch({ name: 'myStreamIndexer' }),
     _storageRootFolder = _config.get('storageRoot'),
     _isAutostarting = _config.get('autoStart'),
     _isStartMinimized = _config.get('startMinimized'),
@@ -48,8 +48,10 @@ var
     await _fs.ensureDir(_dataFolder);
 
     // set state of "auto start" checkbox
-    if (_isAutostarting === undefined || _isAutostarting === null)
+    if (_isAutostarting === undefined || _isAutostarting === null){
         _isAutostarting = false;
+    }
+
     _cbAutostart.checked = _isAutostarting;
 
     if (_isStartMinimized === undefined || _isStartMinimized === null)
@@ -57,7 +59,7 @@ var
     _cbStartMinimized.checked = _isStartMinimized;
 
     // set autostart service for next time app starts
-    if (_cbAutostart)
+    if (_isAutostarting)
         _autoLaunch.enable();
     else
         _autoLaunch.disable();

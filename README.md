@@ -31,6 +31,7 @@ To test the app, point it to a folder containing a ".dropbox" subfolder, this is
 
 ### Build 
 
+- update package.json in the /app folder with latest version number.
 - Run
 
     npm run release     
