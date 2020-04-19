@@ -16,14 +16,14 @@ var
     _allFilesTable = document.querySelector('.allFilesTable'),
     _cbStartMinimized = document.querySelector('.cbStartMinimized'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
-    _filesFoundCount = document.querySelector('.filesFoundCount'),
     _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
     _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
     _focusSettings = document.querySelector('.focusSettings'),
     _status = document.querySelector('.status'),
     _filesTableFilterErrors = document.querySelector('[id="filesTableFilterErrors"]'),
     _filesTableFilterAll = document.querySelector('[id="filesTableFilterAll"]'),
-    _openLogLink = document.querySelector('.openLog'),
+    _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
+    _updateErrorLogLink = require('./lib/ui/errorLogLink'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
     FileWatcher = require('./lib/fileWatcher'),
     _fileWatcher = null,
@@ -33,7 +33,6 @@ var
     _Tray = _electron.remote.Tray,
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
-    _outputLogFile = _path.join(_dataFolder, 'output.log'),
     _config = new _Config(),
     _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
     _storageRootFolder = _config.get('storageRoot'),
@@ -123,10 +122,6 @@ var
 
     _cbStartMinimized.addEventListener('change', function() {
         _config.set('startMinimized', _cbStartMinimized.checked);
-    });
-
-    _openLogLink.addEventListener('click', function(){
-        _electron.shell.openItem(_outputLogFile);
     });
 
     _btnReindex.addEventListener('click', async function() {
@@ -247,20 +242,10 @@ function fillFileTable(){
 
     _allFilesTable.innerHTML = html;
 
-    // files count message
-    _filesFoundCount.innerHTML = `Found ${allFiles.length ? allFiles.length : 'no'} files. `;;
-    
-    // no errors message
-    if (selectedFilter === 'errors' && !errors)
-        _filesFoundCount.innerHTML = `Found ${allFiles.length ? allFiles.length : 'no'} files. `;;
-
+    _updateFileCountLabel(allFiles, selectedFilter, errors);
+    _updateErrorLogLink(errors, _fileIndexer.logPath);
     // error log link
-    if (errors){
-        _openLogLink.style.display = 'inline-block';
-        _openLogLink.innerHTML = `View ${errors} errors`
-    } else {
-        _openLogLink.style.display = 'none';
-    }
+
 
 }
 

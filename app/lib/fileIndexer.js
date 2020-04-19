@@ -51,7 +51,7 @@ module.exports = class {
 
         const dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer');
         this._lokijsPath = path.join(dataFolder, 'loki.json'),
-        this._logPath = path.join(dataFolder, 'output.log');
+        this.logPath = path.join(dataFolder, 'output.log');
         this._loki = new Lokijs(this._lokijsPath);
     }
 
@@ -133,7 +133,7 @@ module.exports = class {
             this._onIndexingStart();
 
         // clear output log
-        await fs.outputFile(this._logPath, '');
+        await fs.outputFile(this.logPath, '');
 
         // reset 
         this._processedCount = -1;
@@ -370,7 +370,7 @@ module.exports = class {
     }
 
     writeToLog(text){
-        fs.appendFile(this._logPath, text + os.EOL, err => {
+        fs.appendFile(this.logPath, text + os.EOL, err => {
             if (err)
                 console.log(err);
         });
