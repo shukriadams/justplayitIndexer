@@ -24,10 +24,14 @@
     right: 6px;                 /* positions alert circle relative to tab text */
 }
 
+.glu_verticalTabs-panels {
+    height:100vh;
+}
+
 .glu_verticalTabs-panel {
     padding: var(--universalMargin);
     /* use vh to take up entire app height. minus height for static controls*/
-    height: calc(100vh - var(--layout-verticalTabWidth)); 
+    height: calc(100% -  (2 * var(--universalMargin))); 
 }
 
 .glu_verticalTabs-text {

@@ -15,3 +15,6 @@
     padding-bottom:var(--universalMargin);
 }
 
+.layout-musicEnabled {
+    height: 100%;
+}

@@ -10,7 +10,6 @@ var
     _btnSelectRoot = document.querySelector('.btnSelectRoot'),
     _pathSelectedContent = document.querySelector('.pathSelectedContent'),
     _scanFolderDisplay = document.querySelector('.scanFolder'),
-    _currentAction = document.querySelector('.currentAction'),
     _removeScanFolder = document.querySelector('.removeScanFolder'),
     _cbAutostart = document.querySelector('.cbAutostart'),
     _allFilesTable = document.querySelector('.allFilesTable'),
@@ -19,9 +18,9 @@ var
     _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
     _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
     _focusSettings = document.querySelector('.focusSettings'),
-    _status = document.querySelector('.status'),
     _filesTableFilterErrors = document.querySelector('[id="filesTableFilterErrors"]'),
     _filesTableFilterAll = document.querySelector('[id="filesTableFilterAll"]'),
+    _title = document.querySelector('title'),
     _pathHelper = require('./lib/pathHelper'),
     _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
     _updateErrorLogLink = require('./lib/ui/errorLogLink'),
@@ -44,7 +43,7 @@ var
 
 // starts things up
 (async function(){
-
+    
     await _fs.ensureDir(_dataFolder);
 
     // set state of "auto start" checkbox
@@ -63,6 +62,9 @@ var
         _autoLaunch.disable();
 
     await setStateBasedOnScanFolder();
+    await fillFileTable();
+
+
 
     // bind UI event handlers
 
@@ -139,6 +141,7 @@ var
     if (_electron.remote.app.isReady()){
         onAppReady();
     }
+    
 })();
 
 
@@ -148,6 +151,7 @@ var
  * null. 
  */
 function bindMainWindowEvents(){
+
     function bind(){
 
         _mainWindow.on('minimize',function(e){
@@ -183,6 +187,7 @@ function bindMainWindowEvents(){
             if (mainWindow){
 
                 bind();
+                
                 // hide menu
                 mainWindow.setMenu(null)
 
@@ -200,19 +205,13 @@ function bindMainWindowEvents(){
 
 
 /**
- * Writes current action to UI. Only one action is displayed at a time. Use this to inform user what app is currently
- * doing.
- */
-function setProgress(action){
-    _currentAction.innerHTML = action;
-}
-
-
-/**
  * 
  */
 function setStatus(status){
-    _status.innerHTML = status;
+    //_status.innerHTML = status;
+    if (status)
+        status = ` - ${status}`;
+    _title.innerHTML = `myStream Indexer${status}`;
 }
 
 
@@ -220,9 +219,15 @@ function setStatus(status){
  * Renders the table showing all files found
  */
 function fillFileTable(){
+    if (!_fileIndexer){
+        _allFilesTable.innerHTML = '';
+        return;
+    }
+        
     const selectedFilter = document.querySelector('[name="filesTableFilter"]:checked').value;
     var allFiles = _fileIndexer.getAllFiles(),
         errors = 0,
+        count = 1,
         html = '';
 
     for (let file of allFiles){
@@ -238,7 +243,8 @@ function fillFileTable(){
         if (_storageRootFolder)
             filePath = filePath.substring(_storageRootFolder.length);
 
-        html += `<li class="allFilesTableRow ${errorClass}">${filePath}</li>`;
+        html += `<li class="allFilesTableRow ${errorClass}">${count} - ${filePath}</li>`;
+        count++;
     }
 
     _allFilesTable.innerHTML = html;

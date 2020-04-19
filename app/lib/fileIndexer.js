@@ -40,7 +40,6 @@ module.exports = class {
         this._onIndexingStart = null;
         // callback when indexing is done
         this._onIndexingDone = null;
-        this._onProgress = null;
         this._interval;
         this._busy = false;
         this._errorsOccurred = false;
@@ -212,13 +211,12 @@ module.exports = class {
                     album : tag.tags.album,
                     track : tag.tags.track,
                     artist : tag.tags.artist,
-                    clippedPath : fileNormalized.replace(pathHelper.toUnixPath(this._fileWatcher.watchPath), '/')
+                    clippedPath : fileNormalized.replace(pathHelper.toUnixPath(this._fileWatcher.watchPath), '')
                 };
                 fileCachedData.isValid = isTagValid( fileCachedData.tagData);
 
                 var percent = Math.floor(this._processedCount / this._toProcessCount * 100);
-                if (this._onProgress)
-                    this._onProgress(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
+                this._setStatus(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
 
                 if (insert)
                     this._fileTable.insert(fileCachedData);
@@ -267,7 +265,7 @@ module.exports = class {
             if (!dirty.length)
                 return;
     
-            // setStatus('Indexing ... ');
+            this._setStatus('Indexing ... ');
     
             // force rebuild files key incase we needed to delete items along the way
             var allProperties = Object.keys(this._fileWatcher.files),
@@ -304,7 +302,7 @@ module.exports = class {
                 writer.writeAttribute('path', id3.clippedPath);
                 writer.endElement();
     
-                // setStatus(`Indexing ${i} of ${id3Array.length}, ${id3.artist} ${id3.name}`);
+                this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`);
             }
     
             writer.endElement();
@@ -349,7 +347,7 @@ module.exports = class {
         }
 
 
-        //setStatus('Indexing complete');
+        this._setStatus('Indexing complete');
 
     }   
 
@@ -380,10 +378,6 @@ module.exports = class {
             if (err)
                 console.log(err);
         });
-    }
-
-    onProgress(callback){
-        this._onProgress = callback;
     }
 
     onIndexingStart(callback){

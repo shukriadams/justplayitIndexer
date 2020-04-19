@@ -1,4 +1,6 @@
-let element;
+let
+    electron = require('electron'),
+    element;
 
 module.exports = function(errorCount, logPath){
     if (!element){
