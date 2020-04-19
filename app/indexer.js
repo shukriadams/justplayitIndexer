@@ -11,6 +11,7 @@ var _path = require('path'),
     _Config = require('electron-config'),
     _lokijs = require('lokijs'),
     _glob = require('multi-glob').glob,
+    _isTagValid = require('./lib/istagValid'),
     _btnReindex = document.querySelector('.btnReindex'),
     _btnSelectRoot = document.querySelector('.btnSelectRoot'),
     _pathSelectedContent = document.querySelector('.pathSelectedContent'),
@@ -451,7 +452,7 @@ function handleFileChanges(){
                         artist : tag.tags.artist,
                         clippedPath : toUnixPaths(fileNormalized.replace(_storageRootFolder, '/'))
                     };
-                    fileCachedData.isValid = isTagValid( fileCachedData.tagData);
+                    fileCachedData.isValid = _isTagValid( fileCachedData.tagData);
 
                     var percent = Math.floor(processedCount / filesToProcessCount * 100);
                     setProgress(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
@@ -543,7 +544,7 @@ function generateXml(){
         var id3 = fileData.tagData;
 
         // file isn't fully tagged - warn user about this
-        if (!isTagValid(id3)){
+        if (!_isTagValid(id3)){
             writeToLog(`${ id3.clippedPath} isn't properly tagged`);
             _errorsOccurred = true;
             continue;
@@ -655,12 +656,7 @@ function onAppReady(){
 }
 
 
-function isTagValid(tag){
-    return tag 
-        && tag.album 
-        && tag.artist 
-        && tag.name;
-}
+
 
 /** 
  * The only place we set storageFolder.
