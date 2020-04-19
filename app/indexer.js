@@ -1,7 +1,6 @@
 'use strict';
 
 var _path = require('path'),
-    _chokidar = require('chokidar'),
     _AutoLaunch = require('auto-launch'),
     _fs = require('fs'),
     _os = require('os'),
@@ -10,7 +9,6 @@ var _path = require('path'),
     _electron = require('electron'),
     _Config = require('electron-config'),
     _lokijs = require('lokijs'),
-    _glob = require('multi-glob').glob,
     _isTagValid = require('./lib/istagValid'),
     _btnReindex = document.querySelector('.btnReindex'),
     _btnSelectRoot = document.querySelector('.btnSelectRoot'),
@@ -32,6 +30,8 @@ var _path = require('path'),
     _openLogLink = document.querySelector('.openLog'),
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
     _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
+    FileSystemState = require('./lib/fileSystemState'),
+    _fileSystemState = null,
     _lokijsdb = new _lokijs(_lokijsPath),
     _fileDataCollection,
     _mainWindow,
@@ -39,11 +39,8 @@ var _path = require('path'),
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
     _busyReadingFiles = false,
-    _watchedExtensions = ['.mp3', '.m4a'],
     _filesChanged = false,
-    _allFiles = {},
     _outputLogFile = _path.join(_dataFolder, 'output.log'),
-    _watcher,
     _config = new _Config(),
     _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
     _storageRootFolder = _config.get('storageRoot'),
@@ -174,13 +171,13 @@ function onLokiReady(){
         _electron.shell.openItem(_outputLogFile);
     });
 
-    _btnReindex.addEventListener('click', function() {
+    _btnReindex.addEventListener('click', async function() {
         _fileDataCollection.clear(); // force flush collection
         _lokijsdb.saveDatabase();
-        
-        scanAllFiles(function(){
-            _filesChanged = true;
-        });
+
+        // force rescan
+        await _fileSystemState.rescan();
+        _filesChanged = true;
 
     }, false);
 
@@ -274,29 +271,6 @@ function setStatus(status){
 }
 
 
-/** 
- *  1) scan all fires - store in array
- *  2) add all changes to array
- *  3) on change, pause 2 seconds, then write xml file
- *  4) if change while writing, queue change until done
- */
-function registerFileChange(file, action){
-    var extension = _path.extname(file);
-    
-    if (_watchedExtensions.indexOf(extension) === -1)
-        return;
-
-    if (action === 'delete')
-        delete _allFiles[file];
-    else{
-        _allFiles[file] = _allFiles[file] || {};
-        _allFiles[file].file = file;
-    }
-
-    _filesChanged = true;
-}
-
-
 /**
  * Writes item to output log. Log should be for errors only, not general status. Log is cleared each time app
  * starts.
@@ -336,9 +310,14 @@ function fillFileTable(){
 
     _allFilesTable.innerHTML = html;
 
+    // files count message
     _filesFoundCount.innerHTML = `Found ${allFiles.length ? allFiles.length : 'no'} files. `;;
+    
+    // no errors message
+    if (selectedFilter === 'errors' && !errors)
+        _filesFoundCount.innerHTML = `Found ${allFiles.length ? allFiles.length : 'no'} files. `;;
 
-
+    // error log link
     if (errors){
         _openLogLink.style.display = 'inline-block';
         _openLogLink.innerHTML = `View ${errors} errors`
@@ -377,7 +356,7 @@ function handleFileChanges(){
     _fs.writeFileSync(_outputLogFile, '');
 
     var processedCount = 0,
-        allProperties = Object.keys(_allFiles),
+        allProperties = Object.keys(_fileSystemState.files),
         filesToProcessCount = allProperties.length;
 
     var intervalBusy = false;
@@ -407,7 +386,7 @@ function handleFileChanges(){
 
         // ensure file exists, during deletes this list can be slow to update
         if (!_fs.existsSync(file)) {
-            delete _allFiles[file];
+            _fileSystemState.remove(file);
             processedCount ++;
             intervalBusy = false;
             return;
@@ -495,7 +474,7 @@ function handleFileChanges(){
 
 
 /**
- * Writes XML index file from data in _allFiles.
+ * Writes XML index file from data in filesystemState.files hash table.
  */ 
 function generateXml(){
     var writer = null;
@@ -516,7 +495,7 @@ function generateXml(){
     setStatus('Indexing ... ');
 
     // force rebuild array, this tends to lag behind
-    var allProperties = Object.keys(_allFiles),
+    var allProperties = Object.keys(_fileSystemState.files),
         lineoutcount = 0,
         id3Array = [],
         XMLWriter = require('xml-writer'),
@@ -603,34 +582,7 @@ function generateXml(){
  * just queues all files as changed.
  */
 function scanAllFiles (callback){
-    if (_busyReadingFiles)
-        return;
-    _busyReadingFiles = true;
 
-    var root = toUnixPaths(_storageRootFolder); 
-
-    setStatus('Scanning files, this can take a while ... ');
-    
-    var globPaths = [];
-    for (var i = 0; i < _watchedExtensions.length ; i ++)
-        globPaths.push(_path.join(root, '**/*' + _watchedExtensions[i]));
-
-    _glob(globPaths, { }, function(er, files) {
-        if (er)
-            throw er;
-
-        setStatus('');
-
-        _allFiles = {};
-        for (var i = 0 ; i < files.length ; i ++)
-            _allFiles[files[i]] = {
-                file : files[i] // todo : check if this is still used
-            };
-
-        _busyReadingFiles = false;
-        if (callback)
-            callback();
-    });
 }
 
 
@@ -709,33 +661,16 @@ function setStateBasedOnScanFolder(){
     _scanFolderWrapper.style.visibility = 'visible';
     _scanFolderDisplay.innerHTML = _storageRootFolder;
 
-    scanAllFiles(function(){
+    (async function(){
 
-        _watcher = _chokidar.watch([_storageRootFolder], {
-            persistent: true,
-            ignoreInitial : true,
-            awaitWriteFinish: {
-                stabilityThreshold: 2000,
-                pollInterval: 100
-            }
-        });
-        
-        // start watched for file changes
-        _watcher
-            .on('add', function(p) {
-                registerFileChange(p, 'add');
-            })
-            .on('change', function(p){
-                registerFileChange(p, 'change');
-            })
-            .on('unlink', function(p){
-                registerFileChange(p, 'delete');
-            });
-            
+        _fileSystemState = new FileSystemState(_storageRootFolder);
+        await _fileSystemState.start();
+
         // start handler for observed file changes    
         setInterval(function(){
             handleFileChanges();
         }, 1000);
-    });
+    
+    })()
     
 }
