@@ -33,6 +33,7 @@ var
     _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
     FileSystemState = require('./lib/fileSystemState'),
     _fileSystemState = null,
+    _scanInterval,
     _lokijsdb = new _lokijs(_lokijsPath),
     _fileDataCollection,
     _mainWindow,
@@ -146,7 +147,7 @@ async function onLokiReady(){
 
         await setStateBasedOnScanFolder();
         // force dirty to rescan
-        _filesFoundCount.dirty = true;
+        _fileSystemState.dirty = true;
     }, false);
 
     _filesTableFilterErrors.addEventListener('change', function() {
@@ -180,7 +181,7 @@ async function onLokiReady(){
 
         // force rescan and dirty for reindex
         await _fileSystemState.rescan();
-        _filesFoundCount.dirty = true;
+        _fileSystemState.dirty = true;
 
     }, false);
 
@@ -340,7 +341,7 @@ function fillFileTable(){
  */
 function handleFileChanges(){
 
-    if (!_filesFoundCount.dirty)
+    if (!_fileSystemState.dirty)
         return;
 
     if (_busyReadingFiles)
@@ -349,7 +350,7 @@ function handleFileChanges(){
     if (!_storageRootFolder)
         return;
 
-    _filesFoundCount.dirty = false;
+    _fileSystemState.dirty = false;
     _busyReadingFiles = true;
     _errorsOccurred = false;
     _btnReindex.classList.add('button--disable');
@@ -581,15 +582,6 @@ function generateXml(){
 
 
 /**
- * Called when the "reindex now" button is clicked. Force rescans and reindexex everything. Does not directly trigger reindex, 
- * just queues all files as changed.
- */
-function scanAllFiles (callback){
-
-}
-
-
-/**
  * Does final setup stuff when app is ready
  */
 function onAppReady(){
@@ -651,7 +643,6 @@ async function setStateBasedOnScanFolder(){
         _fileDataCollection.clear();
         _lokijsdb.saveDatabase();
 
-
         fillFileTable();
         return;
     }
@@ -667,10 +658,14 @@ async function setStateBasedOnScanFolder(){
     _fileSystemState.onStatusChange=(status)=>{
         setStatus(status)
     }
+
     await _fileSystemState.start();
     
+    if (_scanInterval)
+        clearInterval(_scanInterval);
+
     // start handler for observed file changes    
-    setInterval(function(){
+    _scanInterval= setInterval(function(){
         handleFileChanges();
     }, 1000);
    
