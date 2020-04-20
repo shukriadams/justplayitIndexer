@@ -20,7 +20,7 @@ module.exports = class {
       // hash table of exposed files
       this.files = {};
       this.dirty = false; // set to true if files are changed
-      this.watchedExtensions = ['.mp3', '.m4a']; // todo : expose as setting
+      this.watchedExtensions = ['.mp3', '.mp4', '.m4a', '.ogg']; // todo : expose as setting
       this.watchPath = watchPath;
       this.chokidar = null;
       this._busyScanning = false;

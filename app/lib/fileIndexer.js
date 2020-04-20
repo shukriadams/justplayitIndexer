@@ -24,7 +24,7 @@ const
     jsonfile = require('jsonfile'),
     XMLWriter = require('xml-writer'),
     electron = require('electron'),
-    jsmediatags = require('jsmediatags'),
+    musicMetadata = require('music-metadata'),
     pathHelper = require('./pathHelper'),
     isTagValid = require('./istagValid'),
     Lokijs = require('lokijs'),
@@ -46,6 +46,7 @@ module.exports = class {
         this._processedCount = 0;
         this._toProcessCount = 0;
         this._fileKeys = [];
+        this.genreDelimiter = ',';
         this._fileTable = null; // lokijs collection containing file data
 
         const dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer');
@@ -80,22 +81,6 @@ module.exports = class {
         this._fileTable = this._loki.addCollection('fileData',{ unique:['file']});
     }
     
-    async _readID3Tag(filePath){
-        return new Promise((resolve, reject)=>{
-            try {
-                jsmediatags.read(filePath, {
-                    onSuccess: tag => {
-                        resolve(tag)
-                    },
-                    onError: error => {
-                        reject(error)
-                    }
-                });
-            }catch(ex){
-                reject(ex);
-            }
-        })        
-    }
 
     /**
      * Loads loki from file. if file is corrupt, destroys file and starts new collection
@@ -196,32 +181,37 @@ module.exports = class {
                     insert = true;
                 }
 
-                let tag = await this._readID3Tag(file);
+                let tag = await musicMetadata.parseFile(file);
                 
-                // these are the only tag types we're interested in
-                if (tag.type !== 'ID3' && tag.type !== 'MP4')
-                    return;
-
                 var fileNormalized = pathHelper.toUnixPath(file);
+                
+                let genres = '';
+                if (tag.common.genre){
+                    for (let genre of tag.common.genre)
+                        genres += `${genre},`;
+                }
 
                 fileCachedData.dirty = true;
                 fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
                 fileCachedData.tagData = {
-                    name : tag.tags.title,
-                    album : tag.tags.album,
-                    track : tag.tags.track,
-                    artist : tag.tags.artist,
+                    name : tag.common.title,
+                    album : tag.common.album,
+                    track : tag.common.track && tag.common.track.no ? tag.common.track.no : null,
+                    artist : tag.common.artist,
+                    year : tag.common.year || null,
+                    genres,
                     clippedPath : fileNormalized.replace(pathHelper.toUnixPath(this._fileWatcher.watchPath), '')
                 };
                 fileCachedData.isValid = isTagValid( fileCachedData.tagData);
 
                 var percent = Math.floor(this._processedCount / this._toProcessCount * 100);
-                this._setStatus(`${percent}% ${tag.tags.title} - ${tag.tags.artist}`);
-                await (require('timebelt')).pause(500);
+                this._setStatus(`${percent}% ${tag.common.title} - ${tag.common.artist}`);
+
                 if (insert)
                     this._fileTable.insert(fileCachedData);
                 else
                     this._fileTable.update(fileCachedData);
+
             } catch(ex){
                 let message;
 
@@ -299,6 +289,10 @@ module.exports = class {
                 writer.writeAttribute('artist', id3.artist);
                 writer.writeAttribute('name', id3.name);
                 writer.writeAttribute('path', id3.clippedPath);
+                writer.writeAttribute('year', id3.year);
+                writer.writeAttribute('track', id3.track);
+                writer.writeAttribute('genres', id3.genres);
+
                 writer.endElement();
     
                 this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`);
