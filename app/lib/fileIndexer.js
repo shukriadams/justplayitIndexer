@@ -35,11 +35,11 @@ module.exports = class {
     constructor(fileWatcher){
         this._fileWatcher = fileWatcher;
         // callback for when status text is written
-        this._onStatusChanged = null;
+        this._onStatus = null;
         // callback when indexing starts
-        this._onIndexingStart = null;
+        this._onIndexing = null;
         // callback when indexing is done
-        this._onIndexingDone = null;
+        this._onIndexed = null;
         this._interval;
         this._busy = false;
         this._errorsOccurred = false;
@@ -135,8 +135,8 @@ module.exports = class {
         // reset properties used for index state
         this._fileWatcher.dirty = false;
         this._errorsOccurred = false;
-        if (this._onIndexingStart)
-            this._onIndexingStart();
+        if (this._onIndexing)
+            this._onIndexing();
 
         // clear output log
         await fs.outputFile(this.logPath, '');
@@ -216,8 +216,8 @@ module.exports = class {
                 fileCachedData.isValid = isTagValid( fileCachedData.tagData);
 
                 var percent = Math.floor(this._processedCount / this._toProcessCount * 100);
-                this._setStatus(`${percent}% : ${tag.tags.title} - ${tag.tags.artist}`);
-
+                this._setStatus(`${percent}% ${tag.tags.title} - ${tag.tags.artist}`);
+                await (require('timebelt')).pause(500);
                 if (insert)
                     this._fileTable.insert(fileCachedData);
                 else
@@ -339,8 +339,8 @@ module.exports = class {
     
             this._loki.saveDatabase();
         } finally{
-            if (this._onIndexingDone)
-                this._onIndexingDone();
+            if (this._onIndexed)
+                this._onIndexed();
 
             this._busy = false;
         }
@@ -379,21 +379,21 @@ module.exports = class {
         });
     }
 
-    onIndexingStart(callback){
-        this._onIndexingStart = callback;
+    onIndexing(callback){
+        this._onIndexing = callback;
     }
 
-    onIndexingDone(callback){
-        this._onIndexingDone = callback;
+    onIndexed(callback){
+        this._onIndexed = callback;
     }
 
-    onStatusChange(callback){
-        this._onStatusChanged = callback;
+    onStatus(callback){
+        this._onStatus = callback;
     }
   
     _setStatus(status){
-        if (this._onStatusChanged)
-           this._onStatusChanged(status);
+        if (this._onStatus)
+           this._onStatus(status);
     }
 
     dispose(){

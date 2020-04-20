@@ -1,6 +1,6 @@
 'use strict';
 
-var 
+let 
     _path = require('path'),
     _process =require('process'),
     _AutoLaunch = require('auto-launch'),
@@ -331,7 +331,8 @@ async function setStateBasedOnScanFolder(){
         _fileIndexer.dispose();
 
     _fileIndexer = new FileIndexer(_fileWatcher);
-    _fileIndexer.onIndexingStart(handleIndexinStart)
-    _fileIndexer.onIndexingDone(handleIndexinDone)
+    _fileIndexer.onIndexing(handleIndexinStart)
+    _fileIndexer.onIndexed(handleIndexinDone)
+    _fileIndexer.onStatus(handleStatus);
     await _fileIndexer.start();
 }

@@ -103,7 +103,7 @@ module.exports = class {
     * Rescans files. Exposed to allow for manual rescanning.
     */
    async rescan(forceDirty = false){
-      return new Promise((resolve, reject)=>{
+      return new Promise(async(resolve, reject)=>{
          try {
             if (this._busyScanning)
                return resolve();
@@ -113,7 +113,6 @@ module.exports = class {
             var root = this.watchPath; 
       
             this._setStatus('Scanning files, this can take a while ... ');
-            
             var globPaths = [];
             for (var i = 0; i <  this.watchedExtensions.length ; i ++)
                globPaths.push(path.join(root, '**/*' + this.watchedExtensions[i]));
