@@ -18,8 +18,11 @@ let
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
     _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
+    _lastReindexTimeLabels = document.querySelectorAll('.lastReindexTime'),
     _focusSettings = document.querySelector('.focusSettings'),
     _title = document.querySelector('title'),
+    _sago = require('s-ago'),
+    _lastIndexTime = null, // datetime 
     _pathHelper = require('./lib/pathHelper'),
     _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
     _updateErrorLogLink = require('./lib/ui/errorLogLink'),
@@ -125,6 +128,8 @@ let
         await _fileWatcher.rescan(true);
     }, false);
 
+    setInterval(updateLastUpdateTime, 5000)
+
     bindMainWindowEvents();
 
     _electron.remote.app.on('ready', function() {
@@ -193,6 +198,25 @@ function bindMainWindowEvents(){
 }
 
 
+async function updateLastUpdateTime(){
+    let date = null;
+
+    if (_lastIndexTime)
+        date = _lastIndexTime;
+    else if (_fileIndexer)
+        date = await _fileIndexer.getLastIndexDate();
+
+    for(let label of _lastReindexTimeLabels){
+        
+        if (date){
+            label.style.display = 'block';
+            label.innerHTML = `Last indexed ${_sago(date)}`;
+        } else {
+            label.style.display = 'none';
+        }
+    }
+}
+
 /**
  * 
  */
@@ -232,6 +256,7 @@ function fillFileTable(){
         html += `<li class="allFilesTableRow allFilesTableRow--error">${count} - ${filePath}</li>`;
         count++;
     }
+
 
     _allFilesTable.innerHTML = html;
 
@@ -277,6 +302,7 @@ async function handleIndexinStart(){
 async function handleIndexinDone(){
     _btnReindex.classList.remove('button--disable');
     fillFileTable();
+    _lastIndexTime = new Date();
 }
 
 async function handleStatus(status){

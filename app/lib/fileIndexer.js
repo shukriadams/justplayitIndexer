@@ -46,6 +46,8 @@ module.exports = class {
         this._processedCount = 0;
         this._toProcessCount = 0;
         this._fileKeys = [];
+        // datetime of last index. read from json, or kept in memory
+        this._lastIndexDate; 
         this.genreDelimiter = ',';
         this._fileTable = null; // lokijs collection containing file data
 
@@ -307,8 +309,10 @@ module.exports = class {
             await fs.outputFile(indexPath, xml);
     
             // write status data for fast reading
+            this._lastIndexDate = new Date();
+
             let status = {
-                date : new Date().getTime()
+                date : this._lastIndexDate.getTime()
             }
             
             const statusPath = pathHelper.getStatusPath(this._fileWatcher.watchPath);
@@ -344,6 +348,24 @@ module.exports = class {
 
     }   
 
+
+    /**
+     * Gets date last index was written, from status file 
+     */
+    async getLastIndexDate(){
+        if (!this._lastIndexDate){
+            const statusFilePath = pathHelper.getStatusPath(this._fileWatcher.watchPath);
+            if (await fs.pathExists(statusFilePath)){
+                try{
+                    this._lastIndexDate = new Date(jsonfile.readFileSync(statusFilePath).date);
+                } catch(ex){
+                    // status file corrupt, wait for it to be written again
+                }
+            }
+        }
+
+        return this._lastIndexDate; 
+    }
 
     /**
      * Destroys all index files on disk

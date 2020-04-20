@@ -14,6 +14,7 @@
     "jsonfile": "6.0.1",
     "timebelt": "https://github.com/shukriadams/timebelt.git#0.1.5",
     "electron-config": "0.2.1",
+    "s-ago": "2.1.0",
     "fs-extra": "8.0.1",
     "fs-jetpack": "^0.9.0",
     "music-metadata": "3.8.0",
