@@ -11,7 +11,7 @@
 }
 
 .glu_verticalTabs-tab.glu_verticalTabs-tab--active{
-    background-color: var(--color-mineShaft);
+    background-color: transparent;
     font-weight: bold;
 }
 

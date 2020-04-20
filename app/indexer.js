@@ -19,8 +19,6 @@ let
     _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
     _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
     _focusSettings = document.querySelector('.focusSettings'),
-    _filesTableFilterErrors = document.querySelector('[id="filesTableFilterErrors"]'),
-    _filesTableFilterAll = document.querySelector('[id="filesTableFilterAll"]'),
     _title = document.querySelector('title'),
     _pathHelper = require('./lib/pathHelper'),
     _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
@@ -109,14 +107,6 @@ let
         _fileWatcher.dirty = true;
     }, false);
 
-    _filesTableFilterErrors.addEventListener('change', function() {
-        fillFileTable();
-    });
-    
-    _filesTableFilterAll.addEventListener('change', function() {
-        fillFileTable();
-    });
-
     _cbAutostart.addEventListener('change', function() {
         _config.set('autoStart', _cbAutostart.checked);
 
@@ -155,52 +145,50 @@ let
  */
 function bindMainWindowEvents(){
 
-    var attempts = 0,
-    mainWindowFindTimer = setInterval(function(){
-        attempts ++;
+    let attempts = 0,
+        mainWindowFindTimer = setInterval(()=>{
+            attempts ++;
 
-        var mainWindow,
-            allwindows = _electron.remote.BrowserWindow.getAllWindows();
+            var mainWindow,
+                allwindows = _electron.remote.BrowserWindow.getAllWindows();
 
-        if (allwindows && allwindows.length === 1)
-            mainWindow = allwindows[0];
-    
-        if (!mainWindow)
-            mainWindow = _electron.remote.BrowserWindow.getFocusedWindow(); 
-
-        if (mainWindow || attempts > 20){
-            clearInterval(mainWindowFindTimer);
-            _mainWindow = mainWindow;
-            
-            // if main window still wasn't found, kill app and exit, we can't recover from this
-            if (!mainWindow)
-                return _process.exit(1);
-
-            _mainWindow.on('minimize',function(e){
-                e.preventDefault();
-                _mainWindow.hide();
-            });
+            if (allwindows && allwindows.length === 1)
+                mainWindow = allwindows[0];
         
-            _mainWindow.on('close', function (e) {
-                if( !_electron.remote.app.isQuiting){
+            if (!mainWindow)
+                mainWindow = _electron.remote.BrowserWindow.getFocusedWindow(); 
+
+            if (mainWindow || attempts > 20){
+                clearInterval(mainWindowFindTimer);
+                _mainWindow = mainWindow;
+                
+                // if main window still wasn't found, kill app and exit, we can't recover from this
+                if (!mainWindow)
+                    return _process.exit(1);
+
+                _mainWindow.on('minimize',(e)=>{
                     e.preventDefault();
                     _mainWindow.hide();
-                }
-                return false;
-            });
+                });
+            
+                _mainWindow.on('close', (e)=>{
+                    if( !_electron.remote.app.isQuiting){
+                        e.preventDefault();
+                        _mainWindow.hide();
+                    }
+                    return false;
+                });
 
-            // hide menu
-            mainWindow.setMenu(null)
+                // hide menu
+                mainWindow.setMenu(null)
 
-            // autohide indexer on start, this isn't the best way of doing it
-            // as you can still see app starting
-            if (_isStartMinimized)
-                mainWindow.hide();
-        
-
-        }
-        
-    }, 500);
+                // autohide indexer on start, this isn't the best way of doing it
+                // as you can still see app starting
+                if (_isStartMinimized)
+                    mainWindow.hide();
+            }
+            
+        }, 500);
 
 }
 
@@ -209,9 +197,9 @@ function bindMainWindowEvents(){
  * 
  */
 function setStatus(status){
-    //_status.innerHTML = status;
     if (status)
         status = ` - ${status}`;
+
     _title.innerHTML = `myStream Indexer${status}`;
 }
 
@@ -225,36 +213,30 @@ function fillFileTable(){
         return;
     }
         
-    const selectedFilter = document.querySelector('[name="filesTableFilter"]:checked').value;
     var allFiles = _fileIndexer.getAllFiles(),
         errors = 0,
         count = 1,
         html = '';
 
     for (let file of allFiles){
-        if (!file.isValid)
-            errors ++;   
-
-        if (selectedFilter === 'errors' && file.isValid)
+        if (file.isValid)
             continue;
 
-        let filePath = file.file,
-            errorClass = file.isValid ? '' : 'allFilesTableRow--error';
+        errors ++;   
+
+        let filePath = file.file;
 
         if (_storageRootFolder)
             filePath = filePath.substring(_storageRootFolder.length);
 
-        html += `<li class="allFilesTableRow ${errorClass}">${count} - ${filePath}</li>`;
+        html += `<li class="allFilesTableRow allFilesTableRow--error">${count} - ${filePath}</li>`;
         count++;
     }
 
     _allFilesTable.innerHTML = html;
 
-    _updateFileCountLabel(allFiles, selectedFilter, errors);
+    _updateFileCountLabel(allFiles);
     _updateErrorLogLink(errors, _fileIndexer.logPath);
-    // error log link
-
-
 }
 
 

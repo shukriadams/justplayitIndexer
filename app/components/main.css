@@ -38,10 +38,6 @@ a {
     visibility: hidden;
 }
 
-.filesTableFilterLabel{
-    cursor: pointer;
-}
-
 .allFilesTable {
     padding: 0;
 }
