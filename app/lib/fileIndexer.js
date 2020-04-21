@@ -50,6 +50,7 @@ module.exports = class {
         this._lastIndexDate; 
         this.genreDelimiter = ',';
         this._fileTable = null; // lokijs collection containing file data
+        this._logBuffer = [];
 
         const dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer');
         this._lokijsPath = path.join(dataFolder, 'loki.json'),
@@ -120,13 +121,12 @@ module.exports = class {
         this._busy = true;
 
         // reset properties used for index state
+        this._logBuffer = [];
         this._fileWatcher.dirty = false;
         this._errorsOccurred = false;
         if (this._onIndexing)
             this._onIndexing();
 
-        // clear output log
-        await fs.outputFile(this.logPath, '');
 
         this._processedCount = -1;
         this._fileKeys = Object.keys(this._fileWatcher.files),
@@ -231,7 +231,7 @@ module.exports = class {
                 else
                     this._fileTable.update(fileCachedData);
 
-                this.writeToLog(`${message} : ${JSON.stringify(ex)}`);
+                this._logBuffer.push(`${message} : ${JSON.stringify(ex)}`);
                 this._errorsOccurred = true;
             }
             finally{
@@ -273,7 +273,7 @@ module.exports = class {
                     continue; // yeah, this should never happen
     
                 if (!fileData.tagData){
-                    this.writeToLog(`${allProperties[i]} has no tag data`);
+                    this._logBuffer.push(`${allProperties[i]} has no tag data`);
                     continue;
                 }
     
@@ -281,7 +281,7 @@ module.exports = class {
     
                 // file isn't fully tagged - warn user about this
                 if (!isTagValid(id3)){
-                    this.writeToLog(`${ id3.clippedPath} isn't properly tagged`);
+                    this._logBuffer.push(`${ id3.clippedPath} isn't properly tagged`);
                     this._errorsOccurred = true;
                     continue;
                 }
@@ -334,7 +334,11 @@ module.exports = class {
             for (var i = 0 ; i < orphans.length ; i ++) {
                 this._fileTable.remove(orphans[i]);
             }
-    
+
+            // write output log, we do this list because we don't want to risk writing an empty
+            // new log over previous errors 
+            await fs.outputFile(this.logPath, this._logBuffer.join(os.EOL));
+
             this._loki.saveDatabase();
         } finally{
             if (this._onIndexed)
@@ -386,13 +390,6 @@ module.exports = class {
      */
     getAllFiles(){
         return this._fileTable.find({ });
-    }
-
-    writeToLog(text){
-        fs.appendFile(this.logPath, text + os.EOL, err => {
-            if (err)
-                console.log(err);
-        });
     }
 
     onIndexing(callback){
