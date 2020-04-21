@@ -18,7 +18,6 @@ let
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
     _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
     _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
-    _lastReindexTimeLabels = document.querySelectorAll('.lastReindexTime'),
     _focusSettings = document.querySelector('.focusSettings'),
     _title = document.querySelector('title'),
     _sago = require('s-ago'),
@@ -87,7 +86,7 @@ let
         // clean this p
         await _fileIndexer.wipe();
         setStorageRootFolder(null);
-        fillFileTable();
+        await fillFileTable();
         await setStateBasedOnScanFolder();
     }, false);
 
@@ -127,8 +126,6 @@ let
          // force rescan and dirty
         await _fileWatcher.rescan(true);
     }, false);
-
-    setInterval(updateLastUpdateTime, 5000)
 
     bindMainWindowEvents();
 
@@ -198,25 +195,6 @@ function bindMainWindowEvents(){
 }
 
 
-async function updateLastUpdateTime(){
-    let date = null;
-
-    if (_lastIndexTime)
-        date = _lastIndexTime;
-    else if (_fileIndexer)
-        date = await _fileIndexer.getLastIndexDate();
-
-    for(let label of _lastReindexTimeLabels){
-        
-        if (date){
-            label.style.display = 'block';
-            label.innerHTML = `Last indexed ${_sago(date)}`;
-        } else {
-            label.style.display = 'none';
-        }
-    }
-}
-
 /**
  * 
  */
@@ -231,7 +209,7 @@ function setStatus(status){
 /**
  * Renders the table showing all files found
  */
-function fillFileTable(){
+async function fillFileTable(){
     if (!_fileIndexer){
         _allFilesTable.innerHTML = '';
         return;
@@ -257,6 +235,13 @@ function fillFileTable(){
         count++;
     }
 
+    if (_fileIndexer ){
+        const lastIndexDate = await _fileIndexer.getLastIndexDate();
+        if (lastIndexDate){
+            document.querySelector('.lastReindexTime').innerHTML = `Last indexed ${_sago(lastIndexDate)}`;
+        }
+    }
+        
 
     _allFilesTable.innerHTML = html;
 
@@ -301,7 +286,7 @@ async function handleIndexinStart(){
 
 async function handleIndexinDone(){
     _btnReindex.classList.remove('button--disable');
-    fillFileTable();
+    await fillFileTable();
     _lastIndexTime = new Date();
 }
 
