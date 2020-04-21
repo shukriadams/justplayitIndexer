@@ -253,8 +253,14 @@ module.exports = class {
     
             // check for dirty files in loki. If nothing, indexing is done
             var dirty =  this._fileTable.find({dirty : true});
-            if (!dirty.length)
+            if (!dirty.length){
+                if (this._processedCount)
+                    this._setStatus(`No changes detected`);
+                else
+                    this._setStatus('Found no music');
+                    
                 return;
+            }
     
             this._setStatus('Indexing ... ');
     

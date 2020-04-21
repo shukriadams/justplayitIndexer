@@ -28,6 +28,7 @@ let
     _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
     FileWatcher = require('./lib/fileWatcher'),
     _fileWatcher = null,
+    _indexStart = null, // datetime
     FileIndexer = require('./lib/fileIndexer'),
     _fileIndexer = null,
     _mainWindow,
@@ -280,14 +281,24 @@ function setStorageRootFolder(folder){
     _config.set('storageRoot', folder);
 }
 
-async function handleIndexinStart(){
+async function handleIndexStart(){
+    _indexStart = new Date()
     _btnReindex.classList.add('button--disable');
+    _btnReindex.innerHTML = 'Reindexing';
+    setStatus('Searching ...');
 }
 
 async function handleIndexinDone(){
-    _btnReindex.classList.remove('button--disable');
-    await fillFileTable();
-    _lastIndexTime = new Date();
+    const lapsed = new Date().getTime() - _indexStart.getTime(),
+        minTime = 3000;
+
+    setTimeout(async ()=> {
+        _btnReindex.classList.remove('button--disable');
+        _btnReindex.innerHTML = 'Reindex';
+        await fillFileTable();
+        _lastIndexTime = new Date();
+    }, lapsed < minTime ? minTime - lapsed : 0);
+
 }
 
 async function handleStatus(status){
@@ -324,7 +335,7 @@ async function setStateBasedOnScanFolder(){
         _fileIndexer.dispose();
 
     _fileIndexer = new FileIndexer(_fileWatcher);
-    _fileIndexer.onIndexing(handleIndexinStart)
+    _fileIndexer.onIndexing(handleIndexStart)
     _fileIndexer.onIndexed(handleIndexinDone)
     _fileIndexer.onStatus(handleStatus);
     await _fileIndexer.start();
