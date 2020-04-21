@@ -283,8 +283,8 @@ function setStorageRootFolder(folder){
 
 async function handleIndexStart(){
     _indexStart = new Date()
-    _btnReindex.classList.add('button--disable');
     _btnReindex.innerHTML = 'Reindexing';
+    document.querySelector('body').classList.add('body--disabled');
     setStatus('Searching ...');
 }
 
@@ -293,8 +293,8 @@ async function handleIndexinDone(){
         minTime = 3000;
 
     setTimeout(async ()=> {
-        _btnReindex.classList.remove('button--disable');
         _btnReindex.innerHTML = 'Reindex';
+        document.querySelector('body').classList.remove('body--disabled');
         await fillFileTable();
         _lastIndexTime = new Date();
     }, lapsed < minTime ? minTime - lapsed : 0);
