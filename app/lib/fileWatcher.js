@@ -119,7 +119,8 @@ module.exports = class {
             for (let i = 0; i <  this.watchedExtensions.length ; i ++)
                globPaths.push(path.join(root, '**/*' + this.watchedExtensions[i]))
       
-            glob(globPaths, { }, (err, files)=>{
+            glob(globPaths, { }, (err, files) => {
+
                this._busyScanning = false
                this._setStatus('')
                this.files = {}
@@ -127,7 +128,7 @@ module.exports = class {
                if (err)
                   return reject(err)
       
-               for (var i = 0 ; i < files.length ; i ++)
+               for (let i = 0 ; i < files.length ; i ++)
                   this.files[files[i]] = {
                      file : files[i] 
                   }
@@ -136,7 +137,8 @@ module.exports = class {
                   this.dirty  = true
 
                resolve()
-            });
+            })
+
          } catch(ex){
             reject(ex)
             this._busyScanning = false

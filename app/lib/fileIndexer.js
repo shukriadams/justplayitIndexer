@@ -93,7 +93,9 @@ module.exports = class {
         return new Promise((resolve, reject)=>{
             try {
                 this._loki.loadDatabase({}, async()=>{
+                    
                     this._fileTable = this._loki.getCollection('fileData')
+
                     // if table load failed, file is corrupt, delete
                     if (!this._fileTable){
                         await fs.remove(this._lokijsPath)
@@ -125,6 +127,7 @@ module.exports = class {
         this._logBuffer = []
         this._fileWatcher.dirty = false
         this._errorsOccurred = false
+
         if (this._onIndexing)
             this._onIndexing()
 
@@ -179,7 +182,7 @@ module.exports = class {
 
             try{
                 
-                var file = this._fileKeys[this._processedCount]
+                let file = this._fileKeys[this._processedCount]
 
                 // ensure file exists, during deletes this list can be slow to update
                 if (!await fs.pathExists(file)) {
@@ -188,7 +191,7 @@ module.exports = class {
                 }
 
                 // check if file data is cached in loki, and if file was updated since then
-                var fileStats,
+                let fileStats,
                     fileCachedData = this._fileTable.by('file', file)
 
                 // file hasn't changed since last update, ignore it
@@ -231,7 +234,7 @@ module.exports = class {
 
                 fileCachedData.isValid = isTagValid( fileCachedData.tagData)
 
-                var percent = Math.floor(this._processedCount / this._toProcessCount * 100)
+                const percent = Math.floor(this._processedCount / this._toProcessCount * 100)
                 this._setStatus(`${percent}% ${tag.common.title} - ${tag.common.artist}`)
 
                 if (insert)
@@ -258,8 +261,7 @@ module.exports = class {
 
                 this._logBuffer.push(`${message} : ${JSON.stringify(ex)}`)
                 this._errorsOccurred = true
-            }
-            finally{
+            } finally{
                 this._handleNextFile()
             }
         })
@@ -288,7 +290,7 @@ module.exports = class {
             this._setStatus('Indexing ... ')
     
             // force rebuild files key incase we needed to delete items along the way
-            let allProperties = Object.keys(this._fileWatcher.files),
+            let allProperties = Object.keys(this._fileWatcher.files)
                 writer = new XMLWriter()
     
             writer.startDocument()
@@ -325,7 +327,6 @@ module.exports = class {
                 writer.writeAttribute('track', id3.track)
                 writer.writeAttribute('genres', id3.genres)
                 writer.writeAttribute('modified', fileData.mtime ? new Date(fileData.mtime).getTime() : null)
-
                 writer.endElement()
     
                 this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`)
@@ -371,13 +372,13 @@ module.exports = class {
             await fs.outputFile(this.logPath, this._logBuffer.join(os.EOL))
 
             this._loki.saveDatabase()
+
         } finally{
             if (this._onIndexed)
                 this._onIndexed()
 
             this._busy = false
         }
-
 
         this._setStatus('Indexing complete')
 
@@ -389,7 +390,9 @@ module.exports = class {
      */
     async getLastIndexDate(){
         if (!this._lastIndexDate){
+            
             const statusFilePath = pathHelper.getStatusPath(this._fileWatcher.watchPath)
+
             if (await fs.pathExists(statusFilePath)){
                 try{
                     this._lastIndexDate = new Date((await fs.readJson(statusFilePath)).date)
