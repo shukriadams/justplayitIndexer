@@ -1,6 +1,6 @@
 {
   "build": {
-    "appId": "com.shukriadams.justplayitIndexer",
+    "appId": "com.mystream.indexer",
     "app-category-type": "musicFileIndexer",
     "win": {
       "target": [
