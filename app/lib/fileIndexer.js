@@ -84,7 +84,7 @@ module.exports = class {
     _createCollection(){
         this._fileTable = this._loki.addCollection('fileData',{ unique:['file']})
     }
-    
+   
 
     /**
      * Loads loki from file. if file is corrupt, destroys file and starts new collection
@@ -139,6 +139,25 @@ module.exports = class {
 
 
     /**
+     * Stand-in fs.promises.stat which doesn't exist in current runtime 
+     */
+    async _stat(file){
+        return new Promise((resolve, reject)=>{
+            try {
+                fs.stat(file,(err, stat)=>{
+                    if (err)
+                        return reject(err)
+
+                    resolve(stat)
+                })
+            }catch(ex){
+                reject(ex)
+            }
+        })
+    }   
+
+
+    /**
      * Checks each file on drive for changes. Compare actual file change
      * date with file data in Loki, if changed or not found, read its
      * id3 tags
@@ -174,7 +193,7 @@ module.exports = class {
 
                 // file hasn't changed since last update, ignore it
                 if (fileCachedData){
-                    fileStats = await fs.promises.stat(file)
+                    fileStats = await this._stat(file)
                     if (fileStats.mtime.toString() === fileCachedData.mtime)
                         return
                 }
@@ -205,8 +224,6 @@ module.exports = class {
                     album : tag.common.album,
                     track : tag.common.track && tag.common.track.no ? tag.common.track.no : null,
                     artist : tag.common.artist,
-                    created : null,
-                    updated: null,
                     year : tag.common.year || null,
                     genres,
                     clippedPath : fileNormalized.replace(pathHelper.toUnixPath(this._fileWatcher.watchPath), '')
@@ -307,6 +324,7 @@ module.exports = class {
                 writer.writeAttribute('year', id3.year)
                 writer.writeAttribute('track', id3.track)
                 writer.writeAttribute('genres', id3.genres)
+                writer.writeAttribute('modified', fileData.mtime ? new Date(fileData.mtime).getTime() : null)
 
                 writer.endElement()
     
