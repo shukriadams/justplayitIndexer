@@ -44,7 +44,7 @@ let
 
 
 // starts things up
-(async function(){
+(async()=>{
     
     await _fs.ensureDir(_dataFolder);
 
@@ -73,7 +73,7 @@ let
     // bind UI event handlers
 
     // unbinds scan folder
-    _removeScanFolder.addEventListener('click', async function(){
+    _removeScanFolder.addEventListener('click', async ()=>{
         const approved = _dialog.showMessageBox({
             type: 'question',
             buttons: ['No', 'Yes'],
@@ -92,12 +92,12 @@ let
     }, false);
 
     //
-    _focusSettings.addEventListener('click', function() {
+    _focusSettings.addEventListener('click', ()=>{
         window.__glu_verticalTabs['mainTabs'].focusNamed('settings')
     });
 
     // binds scan folder
-    _btnSelectRoot.addEventListener('click', async function(){
+    _btnSelectRoot.addEventListener('click', async ()=>{
         const folder = _dialog.showOpenDialog({
             properties: ['openDirectory']
         });
@@ -110,7 +110,7 @@ let
         _fileWatcher.dirty = true;
     }, false);
 
-    _cbAutostart.addEventListener('change', function() {
+    _cbAutostart.addEventListener('change', ()=>{
         _config.set('autoStart', _cbAutostart.checked);
 
         if (_cbAutostart.checked)
@@ -119,18 +119,18 @@ let
             _autoLaunch.disable();
     });
 
-    _cbStartMinimized.addEventListener('change', function() {
+    _cbStartMinimized.addEventListener('change', ()=>{
         _config.set('startMinimized', _cbStartMinimized.checked);
     });
 
-    _btnReindex.addEventListener('click', async function() {
+    _btnReindex.addEventListener('click', async()=>{
          // force rescan and dirty
         await _fileWatcher.rescan(true);
     }, false);
 
     bindMainWindowEvents();
 
-    _electron.remote.app.on('ready', function() {
+    _electron.remote.app.on('ready', ()=>{
         onAppReady();
     });
 
@@ -257,7 +257,7 @@ function onAppReady(){
     _tray = new _Tray(__dirname + '/resources/windows/icon.ico');
 
     var contextMenu = _menu.buildFromTemplate([
-        {label: 'Show', click:  function() {
+        {label: 'Show', click:  ()=> {
             _mainWindow.show();
         } },
         {label: 'Quit', click:  async()=>{

@@ -5,10 +5,10 @@
  * Chokidar watches file system and keeps this hash table up-to-date. 
  */
 const 
-   path = require('path'),
-   glob = require('multi-glob').glob,
-   chokidar = require('chokidar'),
-   pathHelper = require('./pathHelper');
+   path = require('path')
+   glob = require('multi-glob').glob
+   chokidar = require('chokidar')
+   pathHelper = require('./pathHelper')
 
 module.exports = class {
 
@@ -18,13 +18,13 @@ module.exports = class {
     */
    constructor(watchPath){
       // hash table of exposed files
-      this.files = {};
-      this.dirty = false; // set to true if files are changed
-      this.watchedExtensions = ['.mp3', '.mp4', '.m4a', '.ogg']; // todo : expose as setting
-      this.watchPath = watchPath;
-      this.chokidar = null;
-      this._busyScanning = false;
-      this.onStatusChanged = null;
+      this.files = {}
+      this.dirty = false // set to true if files are changed
+      this.watchedExtensions = ['.mp3', '.mp4', '.m4a', '.ogg'] // todo : expose as setting
+      this.watchPath = watchPath
+      this.chokidar = null
+      this._busyScanning = false
+      this.onStatusChanged = null
    }
 
    /**
@@ -32,7 +32,7 @@ module.exports = class {
     */
    async start(){
       // do full scan first so we have state that can change
-      await this.rescan();
+      await this.rescan()
 
       this.chokidar = chokidar.watch([this.watchPath], {
          persistent: true,
@@ -46,14 +46,14 @@ module.exports = class {
      // start watched for file changes
      this.chokidar
          .on('add', p =>{
-            this._registerFileChange(p, 'add');
+            this._registerFileChange(p, 'add')
          })
          .on('change', p =>{
-            this._registerFileChange(p, 'change');
+            this._registerFileChange(p, 'change')
          })
          .on('unlink', p =>{
-            this._registerFileChange(p, 'delete');
-         });
+            this._registerFileChange(p, 'delete')
+         })
    }
 
    /**
@@ -62,31 +62,31 @@ module.exports = class {
     * @param {*} changeType String descripting action add|change|delete
     */
    _registerFileChange(filePath, changeType){
-      filePath = pathHelper.toUnixPath(filePath);
+      filePath = pathHelper.toUnixPath(filePath)
 
-      const extension = path.extname(filePath);
+      const extension = path.extname(filePath)
       
       // ignore change if coming from a file type we don't care about
       if (this.watchedExtensions.indexOf(extension) === -1)
-          return;
+          return
   
       if (changeType === 'delete')
-          delete this.files[filePath];
+          delete this.files[filePath]
       else{
-         this.files[filePath] = this.files[filePath] || {};
-         this.files[filePath].file = filePath;
+         this.files[filePath] = this.files[filePath] || {}
+         this.files[filePath].file = filePath
       }
   
-      this.dirty = true;
+      this.dirty = true
    }
 
    onStatusChange(callback){
-      this.onStatusChanged = callback;
+      this.onStatusChanged = callback
    }
 
    _setStatus(status){
       if (this.onStatusChanged)
-         this.onStatusChanged(status);
+         this.onStatusChanged(status)
    }
 
 
@@ -95,7 +95,7 @@ module.exports = class {
     * Use this to remove known deleted files
     */
    remove(file){
-      delete this.files[file];
+      delete this.files[file]
    }
 
 
@@ -106,38 +106,40 @@ module.exports = class {
       return new Promise(async(resolve, reject)=>{
          try {
             if (this._busyScanning)
-               return resolve();
+               return resolve()
    
-            this._busyScanning = true;
+            this._busyScanning = true
       
-            var root = this.watchPath; 
+            const root = this.watchPath 
       
-            this._setStatus('Scanning files, this can take a while ... ');
-            var globPaths = [];
-            for (var i = 0; i <  this.watchedExtensions.length ; i ++)
-               globPaths.push(path.join(root, '**/*' + this.watchedExtensions[i]));
-      
-            glob(globPaths, { }, (er, files)=>{
-               this._busyScanning = false;
-               this._setStatus('');
-               this.files = {};
+            this._setStatus('Scanning files, this can take a while ... ')
+            
+            let globPaths = []
 
-               if (er)
-                  return reject(er);
+            for (let i = 0; i <  this.watchedExtensions.length ; i ++)
+               globPaths.push(path.join(root, '**/*' + this.watchedExtensions[i]))
+      
+            glob(globPaths, { }, (err, files)=>{
+               this._busyScanning = false
+               this._setStatus('')
+               this.files = {}
+
+               if (err)
+                  return reject(err)
       
                for (var i = 0 ; i < files.length ; i ++)
                   this.files[files[i]] = {
                      file : files[i] 
-                  };
+                  }
                   
                if (forceDirty)
                   this.dirty  = true
 
-               resolve();
+               resolve()
             });
          } catch(ex){
-            reject(ex);
-            this._busyScanning = false;
+            reject(ex)
+            this._busyScanning = false
          } 
       })
 

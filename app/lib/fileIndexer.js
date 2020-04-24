@@ -19,60 +19,61 @@
  * query lokijs to display state on local UI.
  */
 const 
-    path = require('path'),
-    os = require('os'),
-    jsonfile = require('jsonfile'),
-    XMLWriter = require('xml-writer'),
-    electron = require('electron'),
-    musicMetadata = require('music-metadata'),
-    pathHelper = require('./pathHelper'),
-    isTagValid = require('./istagValid'),
-    Lokijs = require('lokijs'),
-    fs = require('fs-extra');
+    path = require('path')
+    os = require('os')
+    XMLWriter = require('xml-writer')
+    electron = require('electron')
+    musicMetadata = require('music-metadata')
+    pathHelper = require('./pathHelper')
+    isTagValid = require('./istagValid')
+    Lokijs = require('lokijs')
+    fs = require('fs-extra')
 
 module.exports = class {
     
     constructor(fileWatcher){
-        this._fileWatcher = fileWatcher;
+        this._fileWatcher = fileWatcher
         // callback for when status text is written
-        this._onStatus = null;
+        this._onStatus = null
         // callback when indexing starts
-        this._onIndexing = null;
+        this._onIndexing = null
         // callback when indexing is done
-        this._onIndexed = null;
-        this._interval;
-        this._busy = false;
-        this._errorsOccurred = false;
-        this._processedCount = 0;
-        this._toProcessCount = 0;
-        this._fileKeys = [];
+        this._onIndexed = null
+        this._interval
+        this._busy = false
+        this._errorsOccurred = false
+        this._processedCount = 0
+        this._toProcessCount = 0
+        this._fileKeys = []
         // datetime of last index. read from json, or kept in memory
-        this._lastIndexDate; 
-        this.genreDelimiter = ',';
-        this._fileTable = null; // lokijs collection containing file data
-        this._logBuffer = [];
+        this._lastIndexDate 
+        this.genreDelimiter = ','
+        // lokijs collection containing file data
+        this._fileTable = null 
+        this._logBuffer = []
 
-        const dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer');
-        this._lokijsPath = path.join(dataFolder, 'loki.json'),
-        this.logPath = path.join(dataFolder, 'output.log');
-        this._loki = new Lokijs(this._lokijsPath);
+        const dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer')
+
+        this._lokijsPath = path.join(dataFolder, 'loki.json')
+        this.logPath = path.join(dataFolder, 'output.log')
+        this._loki = new Lokijs(this._lokijsPath)
     }
 
     async start(){
 
         // start new loki or load existing from file
         if (await fs.pathExists(this._lokijsPath))
-           await this._loadLokiFromFile();
+           await this._loadLokiFromFile()
         else 
-            this._createCollection();
+            this._createCollection()
 
         // start timer for observing file changes. We poll constantly
         // instead of responding to events from fileWatcher because we
         // often get many clustered events at once causing our event
         // watcher to clog. This can be made more effecient later
         this._interval= setInterval(async ()=>{
-            await this._checkForFileChanges();
-        }, 1000);
+            await this._checkForFileChanges()
+        }, 1000)
     }
 
 
@@ -81,7 +82,7 @@ module.exports = class {
      * exists, load table from file instaed
      */
     _createCollection(){
-        this._fileTable = this._loki.addCollection('fileData',{ unique:['file']});
+        this._fileTable = this._loki.addCollection('fileData',{ unique:['file']})
     }
     
 
@@ -92,18 +93,18 @@ module.exports = class {
         return new Promise((resolve, reject)=>{
             try {
                 this._loki.loadDatabase({}, async()=>{
-                    this._fileTable = this._loki.getCollection('fileData');
+                    this._fileTable = this._loki.getCollection('fileData')
                     // if table load failed, file is corrupt, delete
                     if (!this._fileTable){
-                        await fs.remove(this._lokijsPath);
-                        this._createCollection();
-                        console.log('loki file corrupt, resetting');
+                        await fs.remove(this._lokijsPath)
+                        this._createCollection()
+                        console.log('loki file corrupt, resetting')
                     }
 
-                    resolve();
-                });
+                    resolve()
+                })
             }catch(ex){
-                reject(ex);
+                reject(ex)
             }
         })
     }
@@ -112,28 +113,28 @@ module.exports = class {
 
         // file watcher is where file state is kept
         if (!this._fileWatcher.dirty)
-            return;
+            return
 
         // already busy doing an index, exit
         if (this._busy)
-            return;
+            return
 
-        this._busy = true;
+        this._busy = true
 
         // reset properties used for index state
-        this._logBuffer = [];
-        this._fileWatcher.dirty = false;
-        this._errorsOccurred = false;
+        this._logBuffer = []
+        this._fileWatcher.dirty = false
+        this._errorsOccurred = false
         if (this._onIndexing)
-            this._onIndexing();
+            this._onIndexing()
 
 
-        this._processedCount = -1;
-        this._fileKeys = Object.keys(this._fileWatcher.files),
-        this._toProcessCount = this._fileKeys.length;
+        this._processedCount = -1
+        this._fileKeys = Object.keys(this._fileWatcher.files)
+        this._toProcessCount = this._fileKeys.length
 
         // start handling files
-        this._handleNextFile();
+        this._handleNextFile()
     }
 
 
@@ -144,100 +145,107 @@ module.exports = class {
      */
     async _handleNextFile(){
         setImmediate(async()=>{
-            this._processedCount ++;
+
+            this._processedCount ++
 
             // check if all objects have been processed, if so write xml from loki and exit.
             // IMPORTANT : do not refactor this back into the try block, else
             // this method will recurse forever!
             if (this._processedCount >= this._toProcessCount){
-                this._finishHandlingChanges();
-                return;
+                this._finishHandlingChanges()
+                return
             }
+            
+            let insert = false
 
             try{
                 
-                var file = this._fileKeys[this._processedCount];
+                var file = this._fileKeys[this._processedCount]
 
                 // ensure file exists, during deletes this list can be slow to update
                 if (!await fs.pathExists(file)) {
-                    this._fileWatcher.remove(file);
-                    return;
+                    this._fileWatcher.remove(file)
+                    return
                 }
 
                 // check if file data is cached in loki, and if file was updated since then
                 var fileStats,
-                    fileCachedData = this._fileTable.by('file', file);
+                    fileCachedData = this._fileTable.by('file', file)
 
                 // file hasn't changed since last update, ignore it
                 if (fileCachedData){
-                    fileStats = fs.statSync(file); // todo make async
+                    fileStats = await fs.promises.stat(file)
                     if (fileStats.mtime.toString() === fileCachedData.mtime)
-                        return;
+                        return
                 }
-
-                var insert = false;
+               
                 if (!fileCachedData){
+                    
                     fileCachedData = {
                         file : file
-                    };
-                    insert = true;
+                    }
+
+                    insert = true
                 }
 
-                let tag = await musicMetadata.parseFile(file);
+                let tag = await musicMetadata.parseFile(file)
                 
-                var fileNormalized = pathHelper.toUnixPath(file);
+                const fileNormalized = pathHelper.toUnixPath(file)
                 
-                let genres = '';
-                if (tag.common.genre){
+                let genres = ''
+                if (tag.common.genre)
                     for (let genre of tag.common.genre)
-                        genres += `${genre},`;
-                }
+                        genres += `${genre},`
+                
 
-                fileCachedData.dirty = true;
-                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
+                fileCachedData.dirty = true
+                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : ''
                 fileCachedData.tagData = {
                     name : tag.common.title,
                     album : tag.common.album,
                     track : tag.common.track && tag.common.track.no ? tag.common.track.no : null,
                     artist : tag.common.artist,
+                    created : null,
+                    updated: null,
                     year : tag.common.year || null,
                     genres,
                     clippedPath : fileNormalized.replace(pathHelper.toUnixPath(this._fileWatcher.watchPath), '')
-                };
-                fileCachedData.isValid = isTagValid( fileCachedData.tagData);
+                }
 
-                var percent = Math.floor(this._processedCount / this._toProcessCount * 100);
-                this._setStatus(`${percent}% ${tag.common.title} - ${tag.common.artist}`);
+                fileCachedData.isValid = isTagValid( fileCachedData.tagData)
+
+                var percent = Math.floor(this._processedCount / this._toProcessCount * 100)
+                this._setStatus(`${percent}% ${tag.common.title} - ${tag.common.artist}`)
 
                 if (insert)
-                    this._fileTable.insert(fileCachedData);
+                    this._fileTable.insert(fileCachedData)
                 else
-                    this._fileTable.update(fileCachedData);
+                    this._fileTable.update(fileCachedData)
 
             } catch(ex){
-                let message;
+                let message
 
                 if (ex.type && ex.type === 'tagfail')
-                    message = `${file} tag read fail.`;
+                    message = `${file} tag read fail.`
                 else 
-                    message = `${file} could not be read, is it properly tagged?`;
+                    message = `${file} could not be read, is it properly tagged?`
                 
-                fileCachedData.dirty = false;
-                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                fileCachedData.tagData  = null;
+                fileCachedData.dirty = false
+                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : ''
+                fileCachedData.tagData  = null
 
                 if (insert)
-                    this._fileTable.insert(fileCachedData);
+                    this._fileTable.insert(fileCachedData)
                 else
-                    this._fileTable.update(fileCachedData);
+                    this._fileTable.update(fileCachedData)
 
-                this._logBuffer.push(`${message} : ${JSON.stringify(ex)}`);
-                this._errorsOccurred = true;
+                this._logBuffer.push(`${message} : ${JSON.stringify(ex)}`)
+                this._errorsOccurred = true
             }
             finally{
-                this._handleNextFile();
+                this._handleNextFile()
             }
-        });
+        })
     }
 
 
@@ -247,114 +255,113 @@ module.exports = class {
      */
     async _finishHandlingChanges(){
         try {
-            this._loki.saveDatabase();
-
-            var writer = null;
+            this._loki.saveDatabase()
     
             // check for dirty files in loki. If nothing, indexing is done
-            var dirty =  this._fileTable.find({dirty : true});
+            const dirty =  this._fileTable.find({dirty : true})
             if (!dirty.length){
                 if (this._processedCount)
-                    this._setStatus(`No changes detected`);
+                    this._setStatus(`No changes detected`)
                 else
-                    this._setStatus('Found no music');
+                    this._setStatus('Found no music')
                     
-                return;
+                return
             }
     
-            this._setStatus('Indexing ... ');
+            this._setStatus('Indexing ... ')
     
             // force rebuild files key incase we needed to delete items along the way
-            var allProperties = Object.keys(this._fileWatcher.files),
-                writer = new XMLWriter();
+            let allProperties = Object.keys(this._fileWatcher.files),
+                writer = new XMLWriter()
     
-            writer.startDocument();
-            writer.startElement('items');
-            writer.writeAttribute('date', new Date().getTime());
+            writer.startDocument()
+            writer.startElement('items')
+            writer.writeAttribute('date', new Date().getTime())
     
-            for (var i = 0 ; i < allProperties.length ; i ++) {
+            for (let i = 0 ; i < allProperties.length ; i ++) {
     
-                var fileData = this._fileTable.by('file', allProperties[i]);
+                const fileData = this._fileTable.by('file', allProperties[i])
                 if (!fileData)
-                    continue; // yeah, this should never happen
+                    // yeah, this should never happen
+                    continue 
     
                 if (!fileData.tagData){
-                    this._logBuffer.push(`${allProperties[i]} has no tag data`);
-                    continue;
+                    this._logBuffer.push(`${allProperties[i]} has no tag data`)
+                    continue
                 }
     
-                var id3 = fileData.tagData;
+                const id3 = fileData.tagData
     
                 // file isn't fully tagged - warn user about this
                 if (!isTagValid(id3)){
-                    this._logBuffer.push(`${ id3.clippedPath} isn't properly tagged`);
-                    this._errorsOccurred = true;
-                    continue;
+                    this._logBuffer.push(`${ id3.clippedPath} isn't properly tagged`)
+                    this._errorsOccurred = true
+                    continue
                 }
     
-                writer.startElement('item');
-                writer.writeAttribute('album', id3.album);
-                writer.writeAttribute('artist', id3.artist);
-                writer.writeAttribute('name', id3.name);
-                writer.writeAttribute('path', id3.clippedPath);
-                writer.writeAttribute('year', id3.year);
-                writer.writeAttribute('track', id3.track);
-                writer.writeAttribute('genres', id3.genres);
+                writer.startElement('item')
+                writer.writeAttribute('album', id3.album)
+                writer.writeAttribute('artist', id3.artist)
+                writer.writeAttribute('name', id3.name)
+                writer.writeAttribute('path', id3.clippedPath)
+                writer.writeAttribute('year', id3.year)
+                writer.writeAttribute('track', id3.track)
+                writer.writeAttribute('genres', id3.genres)
 
-                writer.endElement();
+                writer.endElement()
     
-                this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`);
+                this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`)
             }
     
-            writer.endElement();
-            writer.endDocument();
+            writer.endElement()
+            writer.endDocument()
     
             const xml = writer.toString(),
-                indexPath = pathHelper.getIndexPath(this._fileWatcher.watchPath);
+                indexPath = pathHelper.getIndexPath(this._fileWatcher.watchPath)
     
-            await fs.outputFile(indexPath, xml);
+            await fs.outputFile(indexPath, xml)
     
             // write status data for fast reading
-            this._lastIndexDate = new Date();
+            this._lastIndexDate = new Date()
 
             let status = {
                 date : this._lastIndexDate.getTime()
             }
             
-            const statusPath = pathHelper.getStatusPath(this._fileWatcher.watchPath);
-            jsonfile.writeFileSync(statusPath, status);
+            const statusPath = pathHelper.getStatusPath(this._fileWatcher.watchPath)
+            await fs.outputJson(statusPath, status)
     
             // clean dirty records
-            for (var i = 0 ; i < dirty.length ; i ++){
-                var record = dirty[i];
-                record.dirty = false;
-                this._fileTable.update(record);
+            for (let i = 0 ; i < dirty.length ; i ++){
+                let record = dirty[i]
+                record.dirty = false
+                this._fileTable.update(record)
             }
     
             // find orphans
-            var orphans = this._fileTable.where(r =>{
-                return allProperties.indexOf(r.file) === -1;
+            let orphans = this._fileTable.where(r =>{
+                return allProperties.indexOf(r.file) === -1
             });
 
             // remove orphans
-            for (var i = 0 ; i < orphans.length ; i ++) {
-                this._fileTable.remove(orphans[i]);
-            }
+            for (let i = 0 ; i < orphans.length ; i ++) 
+                this._fileTable.remove(orphans[i])
+            
 
             // write output log, we do this list because we don't want to risk writing an empty
             // new log over previous errors 
-            await fs.outputFile(this.logPath, this._logBuffer.join(os.EOL));
+            await fs.outputFile(this.logPath, this._logBuffer.join(os.EOL))
 
-            this._loki.saveDatabase();
+            this._loki.saveDatabase()
         } finally{
             if (this._onIndexed)
-                this._onIndexed();
+                this._onIndexed()
 
-            this._busy = false;
+            this._busy = false
         }
 
 
-        this._setStatus('Indexing complete');
+        this._setStatus('Indexing complete')
 
     }   
 
@@ -364,29 +371,29 @@ module.exports = class {
      */
     async getLastIndexDate(){
         if (!this._lastIndexDate){
-            const statusFilePath = pathHelper.getStatusPath(this._fileWatcher.watchPath);
+            const statusFilePath = pathHelper.getStatusPath(this._fileWatcher.watchPath)
             if (await fs.pathExists(statusFilePath)){
                 try{
-                    this._lastIndexDate = new Date(jsonfile.readFileSync(statusFilePath).date);
+                    this._lastIndexDate = new Date((await fs.readJson(statusFilePath)).date)
                 } catch(ex){
-                    // status file corrupt, wait for it to be written again
+                    // status file corrupt, do nothing and wait for it to be written again
                 }
             }
         }
 
-        return this._lastIndexDate; 
+        return this._lastIndexDate
     }
 
     /**
      * Destroys all index files on disk
      */
     async wipe(){
-        await fs.remove(pathHelper.getIndexPath(this._fileWatcher.watchPath));
+        await fs.remove(pathHelper.getIndexPath(this._fileWatcher.watchPath))
 
-        await fs.remove(pathHelper.getStatusPath(this._fileWatcher.watchPath));
+        await fs.remove(pathHelper.getStatusPath(this._fileWatcher.watchPath))
 
-        this._fileTable.clear();
-        this._loki.saveDatabase();
+        this._fileTable.clear()
+        this._loki.saveDatabase()
     }
 
 
@@ -395,28 +402,28 @@ module.exports = class {
      * not from drive
      */
     getAllFiles(){
-        return this._fileTable.find({ });
+        return this._fileTable.find({ })
     }
 
     onIndexing(callback){
-        this._onIndexing = callback;
+        this._onIndexing = callback
     }
 
     onIndexed(callback){
-        this._onIndexed = callback;
+        this._onIndexed = callback
     }
 
     onStatus(callback){
-        this._onStatus = callback;
+        this._onStatus = callback
     }
   
     _setStatus(status){
         if (this._onStatus)
-           this._onStatus(status);
+           this._onStatus(status)
     }
 
     dispose(){
         if (this._interval)
-            clearInterval(this._interval);
+            clearInterval(this._interval)
     }
 }
