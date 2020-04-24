@@ -290,7 +290,7 @@ module.exports = class {
             this._setStatus('Indexing ... ')
     
             // force rebuild files key incase we needed to delete items along the way
-            let allProperties = Object.keys(this._fileWatcher.files)
+            let allProperties = Object.keys(this._fileWatcher.files),
                 writer = new XMLWriter()
     
             writer.startDocument()
