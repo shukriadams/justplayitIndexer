@@ -1,45 +1,47 @@
 'use strict'
 
-let 
-    _path = require('path')
-    _process =require('process')
-    _AutoLaunch = require('auto-launch')
-    _fs = require('fs-extra')
-    _electron = require('electron')
-    _Config = require('electron-config')
-    _btnReindex = document.querySelector('.btnReindex')
-    _btnSelectRoot = document.querySelector('.btnSelectRoot')
-    _pathSelectedContent = document.querySelector('.pathSelectedContent')
-    _scanFolderDisplay = document.querySelector('.scanFolder')
-    _removeScanFolder = document.querySelector('.removeScanFolder')
-    _cbAutostart = document.querySelector('.cbAutostart')
-    _allFilesTable = document.querySelector('.allFilesTable')
-    _cbStartMinimized = document.querySelector('.cbStartMinimized')
-    _scanFolderWrapper = document.querySelector('.scanFolderWrapper')
-    _noScanFolderContent = document.querySelector('.layout-musicDisabled')
-    _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled')
-    _focusSettings = document.querySelector('.focusSettings')
-    _title = document.querySelector('title')
-    _sago = require('s-ago')
-    _lastIndexTime = null // datetime 
-    _pathHelper = require('./lib/pathHelper')
-    _updateFileCountLabel = require('./lib/ui/fileCountLabel')
-    _updateErrorLogLink = require('./lib/ui/errorLogLink')
-    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer')
-    FileWatcher = require('./lib/fileWatcher')
-    _fileWatcher = null
-    _indexStart = null // datetime
-    FileIndexer = require('./lib/fileIndexer')
-    _fileIndexer = null
+let
+    _path = require('path'),
+    _process = require('process'),
+    _AutoLaunch = require('auto-launch'),
+    _fs = require('fs-extra'),
+    _electron = require('electron'),
+    _Config = require('electron-config'),
+    _btnReindex = document.querySelector('.btnReindex'),
+    _btnSelectRoot = document.querySelector('.btnSelectRoot'),
+    _pathSelectedContent = document.querySelector('.pathSelectedContent'),
+    _scanFolderDisplay = document.querySelector('.scanFolder'),
+    _removeScanFolder = document.querySelector('.removeScanFolder'),
+    _cbAutostart = document.querySelector('.cbAutostart'),
+    _allFilesTable = document.querySelector('.allFilesTable'),
+    _cbStartMinimized = document.querySelector('.cbStartMinimized'),
+    _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
+    _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
+    _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
+    _focusSettings = document.querySelector('.focusSettings'),
+    _title = document.querySelector('title'),
+    _sago = require('s-ago'),
+    // datetime 
+    _lastIndexTime = null, 
+    _pathHelper = require('./lib/pathHelper'),
+    _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
+    _updateErrorLogLink = require('./lib/ui/errorLogLink'),
+    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
+    FileWatcher = require('./lib/fileWatcher'),
+    _fileWatcher = null,
+    // datetime
+    _indexStart = null,
+    FileIndexer = require('./lib/fileIndexer'),
+    _fileIndexer = null,
     _mainWindow = null,
-    _Tray = _electron.remote.Tray
-    _menu = _electron.remote.Menu
-    _dialog = _electron.remote.dialog
-    _config = new _Config()
-    _autoLaunch = new _AutoLaunch({ name: 'myStreamIndexer' })
-    _storageRootFolder = _config.get('storageRoot')
-    _isAutostarting = _config.get('autoStart')
-    _isStartMinimized = _config.get('startMinimized')
+    _Tray = _electron.remote.Tray,
+    _menu = _electron.remote.Menu,
+    _dialog = _electron.remote.dialog,
+    _config = new _Config(),
+    _autoLaunch = new _AutoLaunch({ name: 'myStreamIndexer' }),
+    _storageRootFolder = _config.get('storageRoot'),
+    _isAutostarting = _config.get('autoStart'),
+    _isStartMinimized = _config.get('startMinimized'),
     _tray = null;    
 
 
@@ -155,11 +157,11 @@ let
  */
 function bindMainWindowEvents(){
 
-    let attempts = 0
+    let attempts = 0,
         mainWindowFindTimer = setInterval(()=>{
             attempts ++
 
-            let mainWindow
+            let mainWindow,
                 allwindows = _electron.remote.BrowserWindow.getAllWindows()
 
             if (allwindows && allwindows.length === 1)
@@ -222,9 +224,9 @@ async function fillFileTable(){
         return;
     }
         
-    let allFiles = _fileIndexer.getAllFiles()
-        errors = 0
-        count = 1
+    let allFiles = _fileIndexer.getAllFiles(),
+        errors = 0,
+        count = 1,
         html = ''
 
     _updateFileCountLabel(allFiles)
