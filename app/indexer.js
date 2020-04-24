@@ -220,18 +220,23 @@ async function fillFileTable(){
         count = 1,
         html = '';
 
+    _updateFileCountLabel(allFiles);
+
+
+    errors = allFiles.filter(file => !file.isValid).length;
+    allFiles = allFiles.sort((a,b) => a.mtime > b.mtime);
+    allFiles = allFiles.slice(0, 10);
+
+    if (allFiles.length)
+        html += `<li class="allFilesTableRow allFilesTa_bleRow--error">${allFiles.length} most recent changes</li>`;
+
     for (let file of allFiles){
-        if (file.isValid)
-            continue;
-
-        errors ++;   
-
         let filePath = file.file;
 
         if (_storageRootFolder)
             filePath = filePath.substring(_storageRootFolder.length);
 
-        html += `<li class="allFilesTableRow allFilesTableRow--error">${count} - ${filePath}</li>`;
+        html += `<li class="allFilesTableRow allFilesTa_bleRow--error">${count} - ${filePath} (${_sago(new Date(file.mtime))})</li>`;
         count++;
     }
 
@@ -245,7 +250,6 @@ async function fillFileTable(){
 
     _allFilesTable.innerHTML = html;
 
-    _updateFileCountLabel(allFiles);
     _updateErrorLogLink(errors, _fileIndexer.logPath);
 }
 
