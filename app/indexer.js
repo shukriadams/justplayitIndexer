@@ -173,22 +173,21 @@ function bindMainWindowEvents(){
                     e.preventDefault();
                     _mainWindow.hide();
                 });
-            
+                
+                // always hide app on close, actual closing is done from system tray
                 _mainWindow.on('close', (e)=>{
-                    if( !_electron.remote.app.isQuiting){
-                        e.preventDefault();
-                        _mainWindow.hide();
-                    }
+                    e.preventDefault();
+                    _mainWindow.hide();
                     return false;
                 });
 
                 // hide menu
-                mainWindow.setMenu(null)
+                _mainWindow.setMenu(null)
 
                 // autohide indexer on start, this isn't the best way of doing it
                 // as you can still see app starting
                 if (_isStartMinimized)
-                    mainWindow.hide();
+                    _mainWindow.hide();
             }
             
         }, 500);
@@ -261,10 +260,10 @@ function onAppReady(){
         {label: 'Show', click:  function() {
             _mainWindow.show();
         } },
-        {label: 'Quit', click:  function(){
-            _electron.remote.app.isQuiting = true;
-            _electron.remote.app.quit();
+        {label: 'Quit', click:  async()=>{
 
+            await _electron.ipcRenderer.send('real-death', true);
+            _electron.remote.app.quit();
         } }
     ]);
 
