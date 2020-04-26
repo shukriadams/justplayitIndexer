@@ -303,11 +303,10 @@ module.exports = class {
             // force rebuild files key incase we needed to delete items along the way
             let allProperties = Object.keys(this._fileWatcher.files),
                 writer = new XMLWriter()
-    
-            writer.startDocument()
-            writer.startElement('items')
-            writer.writeAttribute('date', new Date().getTime())
-    
+
+
+            // filter out files that won't be index
+            let filesToIndex = [];
             for (let i = 0 ; i < allProperties.length ; i ++) {
     
                 const fileData = this._fileTable.by('file', allProperties[i])
@@ -328,19 +327,34 @@ module.exports = class {
                     this._errorsOccurred = true
                     continue
                 }
+
+                filesToIndex.push(fileData)
+            }            
+
+            const hash = hasha(JSON.stringify(filesToIndex), {algorithm: 'md5' })
+
+
+            writer.startDocument()
+            writer.startElement('items')
+            writer.writeAttribute('date', new Date().getTime())
+            writer.writeAttribute('hash', hash)
+            
+            for (let i = 0 ; i < filesToIndex.length ; i ++) {
+    
+                const fileData = filesToIndex[i]
     
                 writer.startElement('item')
-                writer.writeAttribute('album', id3.album)
-                writer.writeAttribute('artist', id3.artist)
-                writer.writeAttribute('name', id3.name)
-                writer.writeAttribute('path', id3.clippedPath)
-                writer.writeAttribute('year', id3.year)
-                writer.writeAttribute('track', id3.track)
-                writer.writeAttribute('genres', id3.genres)
+                writer.writeAttribute('album', fileData.tagData.album)
+                writer.writeAttribute('artist', fileData.tagData.artist)
+                writer.writeAttribute('name', fileData.tagData.name)
+                writer.writeAttribute('path', fileData.tagData.clippedPath)
+                writer.writeAttribute('year', fileData.tagData.year)
+                writer.writeAttribute('track', fileData.tagData.track)
+                writer.writeAttribute('genres', fileData.tagData.genres)
                 writer.writeAttribute('modified', fileData.mtime || null)
                 writer.endElement()
     
-                this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`)
+                this._setStatus(`Indexing ${i} of ${filesToIndex.length}, ${fileData.tagData.artist} ${fileData.tagData.name}`)
             }
     
             writer.endElement()
@@ -353,8 +367,6 @@ module.exports = class {
     
             // write status data for fast reading
             this._lastIndexDate = new Date()
-            
-            const hash = hasha(xml, {algorithm: 'md5' })
 
             let status = {
                 hash,
