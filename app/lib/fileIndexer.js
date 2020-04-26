@@ -337,7 +337,7 @@ module.exports = class {
                 writer.writeAttribute('year', id3.year)
                 writer.writeAttribute('track', id3.track)
                 writer.writeAttribute('genres', id3.genres)
-                writer.writeAttribute('modified', fileData.mtime ? new Date(fileData.mtime).getTime() : null)
+                writer.writeAttribute('modified', fileData.mtime || null)
                 writer.endElement()
     
                 this._setStatus(`Indexing ${i} of ${allProperties.length}, ${id3.artist} ${id3.name}`)
