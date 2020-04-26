@@ -139,13 +139,12 @@ let
 
     bindMainWindowEvents()
 
-    _electron.remote.app.on('ready', ()=>{
-        onAppReady()
-    })
-
-    if (_electron.remote.app.isReady()){
-        onAppReady()
-    }
+    if (_electron.remote.app.isReady())
+        await onAppReady()
+    else
+        _electron.remote.app.on('ready', async ()=>{
+            await onAppReady()
+        })
     
 })()
 
@@ -232,7 +231,11 @@ async function fillFileTable(){
     _updateFileCountLabel(allFiles)
 
     errors = allFiles.filter(file => !file.isValid).length
-    allFiles = allFiles.sort((a,b) => a.mtime > b.mtime)
+    allFiles = allFiles.sort((a,b) => 
+        a.mtime < b.mtime  ? 1 :
+        a.mtime > b.mtime  ? -1 :
+        0
+    )
     allFiles = allFiles.slice(0, 10)
 
     if (allFiles.length)
@@ -264,7 +267,7 @@ async function fillFileTable(){
 /**
  * Does final setup stuff when app is ready
  */
-function onAppReady(){
+async function onAppReady(){
     _tray = new _Tray(__dirname + '/resources/windows/icon.ico')
 
     const contextMenu = _menu.buildFromTemplate([
@@ -283,6 +286,9 @@ function onAppReady(){
 
     _tray.setToolTip('myStream Indexer')
     _tray.setContextMenu(contextMenu)
+
+    // force rescan
+    await _fileWatcher.rescan(true)
 }
 
 

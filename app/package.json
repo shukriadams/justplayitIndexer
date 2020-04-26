@@ -11,6 +11,7 @@
   "dependencies": {
     "auto-launch": "5.0.5",
     "lokijs": "1.5.5",
+    "hasha": "5.2.0",
     "timebelt": "https://github.com/shukriadams/timebelt.git#0.1.5",
     "electron-config": "0.2.1",
     "s-ago": "2.1.0",

@@ -27,6 +27,7 @@ const
     pathHelper = require('./pathHelper')
     isTagValid = require('./istagValid')
     Lokijs = require('lokijs')
+    hasha = require('hasha')
     fs = require('fs-extra')
 
 module.exports = class {
@@ -219,9 +220,19 @@ module.exports = class {
                     for (let genre of tag.common.genre)
                         genres += `${genre},`
                 
+                let modifiedTime = null;
+                if (fileStats){
+                    const btime = fileStats.birthtime ? new Date(fileStats.birthtime).getTime() : 0,
+                        mtime = fileStats.mtime ? new Date(fileStats.mtime).getTime() : 0
+                    
+                    if (mtime > btime)
+                        modifiedTime = mtime;
+                    else if (btime > mtime)
+                        modifiedTime = btime;
+                }                        
 
                 fileCachedData.dirty = true
-                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : ''
+                fileCachedData.mtime = modifiedTime
                 fileCachedData.tagData = {
                     name : tag.common.title,
                     album : tag.common.album,
@@ -249,9 +260,9 @@ module.exports = class {
                     message = `${file} tag read fail.`
                 else 
                     message = `${file} could not be read, is it properly tagged?`
-                
+
                 fileCachedData.dirty = false
-                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : ''
+                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : null
                 fileCachedData.tagData  = null
 
                 if (insert)
@@ -342,8 +353,11 @@ module.exports = class {
     
             // write status data for fast reading
             this._lastIndexDate = new Date()
+            
+            const hash = hasha(xml, {algorithm: 'md5' })
 
             let status = {
+                hash,
                 date : this._lastIndexDate.getTime()
             }
             
@@ -367,8 +381,8 @@ module.exports = class {
                 this._fileTable.remove(orphans[i])
             
 
-            // write output log, we do this list because we don't want to risk writing an empty
-            // new log over previous errors 
+            // write output log, we do this here to ensure that log contains actual changes, else a rescan
+            // with no resulting changes can overwrite an earlier useful log
             await fs.outputFile(this.logPath, this._logBuffer.join(os.EOL))
 
             this._loki.saveDatabase()
