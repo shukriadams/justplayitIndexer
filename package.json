@@ -1,6 +1,6 @@
 {
   "build": {
-    "appId": "com.mystream.indexer",
+    "appId": "com.tuna.indexer",
     "app-category-type": "musicFileIndexer",
     "win": {
       "target": [

@@ -26,7 +26,7 @@ let
     _pathHelper = require('./lib/pathHelper'),
     _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
     _updateErrorLogLink = require('./lib/ui/errorLogLink'),
-    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
+    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'tunaIndexer'),
     FileWatcher = require('./lib/fileWatcher'),
     _fileWatcher = null,
     // datetime
@@ -38,7 +38,7 @@ let
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
     _config = new _Config(),
-    _autoLaunch = new _AutoLaunch({ name: 'myStreamIndexer' }),
+    _autoLaunch = new _AutoLaunch({ name: 'tunaIndexer' }),
     _storageRootFolder = _config.get('storageRoot'),
     _isAutostarting = _config.get('autoStart'),
     _isStartMinimized = _config.get('startMinimized'),
@@ -210,7 +210,7 @@ function setStatus(status){
     if (status)
         status = ` - ${status}`
 
-    _title.innerHTML = `myStream Indexer${status}`
+    _title.innerHTML = `Tuna Indexer${status}`
 }
 
 
@@ -284,7 +284,7 @@ async function onAppReady(){
         }
     ])
 
-    _tray.setToolTip('myStream Indexer')
+    _tray.setToolTip('Tuna Indexer')
     _tray.setContextMenu(contextMenu)
 
     // force rescan

@@ -9,7 +9,7 @@
  * 4 - a lokijs database
  * 
  * The xml and json file are readable remotely via Dropbox / Nextcloud etc API, and are 
- * meant to be consumed by the mystream server.
+ * meant to be consumed by the Tuna server.
  * 
  * The text log is for local use - it's a quick-and-dirty way of reporting file read
  * errors to user. It will typically show files which are not propertly tagged.
@@ -53,7 +53,7 @@ module.exports = class {
         this._fileTable = null 
         this._logBuffer = []
 
-        const dataFolder = path.join(electron.remote.app.getPath('appData'), 'myStreamCCIndexer')
+        const dataFolder = path.join(electron.remote.app.getPath('appData'), 'tunaIndexer')
 
         this._lokijsPath = path.join(dataFolder, 'loki.json')
         this.logPath = path.join(dataFolder, 'output.log')

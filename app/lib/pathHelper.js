@@ -11,13 +11,13 @@ module.exports = {
         if (!storageRootFolder)
             throw 'Invalid call - storage path not set'
     
-        return path.join(storageRootFolder, '.myStream.xml')
+        return path.join(storageRootFolder, '.tuna.xml')
     },
 
     getStatusPath(storageRootFolder){
         if (!storageRootFolder)
             throw 'Invalid call - storage path not set'
     
-        return path.join(storageRootFolder, '.myStream.json')
+        return path.join(storageRootFolder, '.tuna.json')
     }
 }
