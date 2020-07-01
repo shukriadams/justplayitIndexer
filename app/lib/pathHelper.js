@@ -11,7 +11,7 @@ module.exports = {
         if (!storageRootFolder)
             throw 'Invalid call - storage path not set'
     
-        return path.join(storageRootFolder, '.tuna.xml')
+        return path.join(storageRootFolder, '.tuna.dat')
     },
 
     getStatusPath(storageRootFolder){

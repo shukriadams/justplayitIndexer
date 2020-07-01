@@ -19,7 +19,6 @@
     "fs-jetpack": "^0.9.0",
     "music-metadata": "3.8.0",
     "multi-glob": "1.0.1",
-    "xml-writer": "1.6.0",
     "chokidar": "1.6.0"
   }
 }

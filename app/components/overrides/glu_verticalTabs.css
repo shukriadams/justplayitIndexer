@@ -6,13 +6,12 @@
 }
 
 .glu_verticalTabs-tab {
-    background-color: var(--color-tiaMaria);
+    color: var(--color-tiaMaria);
     height: 68px;
 }
 
 .glu_verticalTabs-tab.glu_verticalTabs-tab--active{
-    background-color: transparent;
-    font-weight: bold;
+    border-right: 3px solid var(--color-tiaMaria);
 }
 
 .glu_verticalTabs-alert {
@@ -36,5 +35,6 @@
 }
 
 .glu_verticalTabs-text {
+    font-weight: bold;
     left: var(--universalMargin);
 }

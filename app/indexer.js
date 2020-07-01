@@ -19,6 +19,7 @@ let
     _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
     _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
     _focusSettings = document.querySelector('.focusSettings'),
+    _selectRootContent = document.querySelector('.selectRootContent'),
     _title = document.querySelector('title'),
     _sago = require('s-ago'),
     // datetime 
@@ -87,7 +88,9 @@ let
             return
 
         // clean this p
-        await _fileIndexer.wipe()
+        if (_fileIndexer)
+            await _fileIndexer.wipe()
+            
         setStorageRootFolder(null)
         await fillFileTable()
         await setStateBasedOnScanFolder()
@@ -133,7 +136,8 @@ let
 
     _btnReindex.addEventListener('click', async()=>{
          // force rescan and dirty
-        await _fileWatcher.rescan(true)
+         if (_fileWatcher)
+            await _fileWatcher.rescan(true)
     }, false)
 
 
@@ -260,7 +264,8 @@ async function fillFileTable(){
         
     _allFilesTable.innerHTML = html
 
-    _updateErrorLogLink(errors, _fileIndexer.logPath)
+    if (_fileIndexer)
+        _updateErrorLogLink(errors, _fileIndexer.logPath)
 }
 
 
@@ -288,7 +293,8 @@ async function onAppReady(){
     _tray.setContextMenu(contextMenu)
 
     // force rescan
-    await _fileWatcher.rescan(true)
+    if (_fileWatcher)
+        await _fileWatcher.rescan()
 }
 
 
@@ -336,6 +342,7 @@ async function setStateBasedOnScanFolder(){
     _scanFolderWrapper.style.visibility = 'hidden'
     _noScanFolderContent.style.display = 'block'
     _scanFolderSelectedContent.style.display = 'none'
+    _selectRootContent.style.display = 'block'
 
     if (!_storageRootFolder)
         return
@@ -345,7 +352,7 @@ async function setStateBasedOnScanFolder(){
     _pathSelectedContent.style.visibility = 'visible'
     _scanFolderWrapper.style.visibility = 'visible'
     _scanFolderDisplay.innerHTML = _storageRootFolder
-
+    _selectRootContent.style.display = 'none'
 
     _fileWatcher = new FileWatcher(_storageRootFolder)
     _fileWatcher.onStatusChange(handleStatus)

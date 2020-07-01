@@ -21,7 +21,6 @@
 const 
     path = require('path')
     os = require('os')
-    XMLWriter = require('xml-writer')
     electron = require('electron')
     musicMetadata = require('music-metadata')
     pathHelper = require('./pathHelper')
@@ -302,7 +301,7 @@ module.exports = class {
     
             // force rebuild files key incase we needed to delete items along the way
             let allProperties = Object.keys(this._fileWatcher.files),
-                writer = new XMLWriter()
+                writer = ''
 
 
             // filter out files that won't be index
@@ -334,36 +333,28 @@ module.exports = class {
             const hash = hasha(JSON.stringify(filesToIndex), {algorithm: 'md5' })
 
 
-            writer.startDocument()
-            writer.startElement('items')
-            writer.writeAttribute('date', new Date().getTime())
-            writer.writeAttribute('hash', hash)
+            writer += `${JSON.stringify({ date : new Date().getTime(), hash })}\n` 
             
             for (let i = 0 ; i < filesToIndex.length ; i ++) {
     
                 const fileData = filesToIndex[i]
-    
-                writer.startElement('item')
-                writer.writeAttribute('album', fileData.tagData.album)
-                writer.writeAttribute('artist', fileData.tagData.artist)
-                writer.writeAttribute('name', fileData.tagData.name)
-                writer.writeAttribute('path', fileData.tagData.clippedPath)
-                writer.writeAttribute('year', fileData.tagData.year)
-                writer.writeAttribute('track', fileData.tagData.track)
-                writer.writeAttribute('genres', fileData.tagData.genres)
-                writer.writeAttribute('modified', fileData.mtime || null)
-                writer.endElement()
-    
+
+                writer += `${JSON.stringify({ 
+                    album : fileData.tagData.album,
+                    artist : fileData.tagData.artist,
+                    name : fileData.tagData.name,
+                    path : fileData.tagData.clippedPath,
+                    year : fileData.tagData.year,
+                    track : fileData.tagData.track,
+                    genres: fileData.tagData.genres,
+                    modified : fileData.mtime || null
+                })}\n` 
+                
                 this._setStatus(`Indexing ${i} of ${filesToIndex.length}, ${fileData.tagData.artist} ${fileData.tagData.name}`)
             }
     
-            writer.endElement()
-            writer.endDocument()
-    
-            const xml = writer.toString(),
-                indexPath = pathHelper.getIndexPath(this._fileWatcher.watchPath)
-    
-            await fs.outputFile(indexPath, xml)
+            const indexPath = pathHelper.getIndexPath(this._fileWatcher.watchPath)
+            await fs.outputFile(indexPath, writer)
     
             // write status data for fast reading
             this._lastIndexDate = new Date()
