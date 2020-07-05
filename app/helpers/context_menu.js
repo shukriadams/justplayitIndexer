@@ -2,11 +2,12 @@
 // in all input fields and textareas across your app.
 
 (function () {
-    'use strict';
 
-    var remote = require('electron').remote;
-    var Menu = remote.Menu;
-    var MenuItem = remote.MenuItem;
+    'use strict'
+
+    let remote = require('electron').remote
+        Menu = remote.Menu
+        MenuItem = remote.MenuItem
 
     var isAnyTextSelected = function () {
         return window.getSelection().toString() !== '';

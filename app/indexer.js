@@ -1,149 +1,156 @@
-'use strict';
+'use strict'
 
-var _path = require('path'),
-    _chokidar = require('chokidar'),
+let
+    _path = require('path'),
+    _process = require('process'),
     _AutoLaunch = require('auto-launch'),
-    _fs = require('fs'),
-    _os = require('os'),
+    _fs = require('fs-extra'),
     _electron = require('electron'),
     _Config = require('electron-config'),
-    _lokijs = require('lokijs'),
-    _glob = require('multi-glob').glob,
     _btnReindex = document.querySelector('.btnReindex'),
     _btnSelectRoot = document.querySelector('.btnSelectRoot'),
     _pathSelectedContent = document.querySelector('.pathSelectedContent'),
     _scanFolderDisplay = document.querySelector('.scanFolder'),
-    _currentAction = document.querySelector('.currentAction'),
+    _removeScanFolder = document.querySelector('.removeScanFolder'),
     _cbAutostart = document.querySelector('.cbAutostart'),
+    _allFilesTable = document.querySelector('.allFilesTable'),
+    _cbStartMinimized = document.querySelector('.cbStartMinimized'),
     _scanFolderWrapper = document.querySelector('.scanFolderWrapper'),
-    _filesFoundCount = document.querySelector('.filesFoundCount'),
-    _status = document.querySelector('.status'),
-    _openLogLink = document.querySelector('.openLog'),
-    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'myStreamCCIndexer'),
-    _lokijsPath =  _path.join(_dataFolder, 'persist.json'),
-    _lokijsdb = new _lokijs(_lokijsPath),
-    _fileDataCollection,
-    _mainWindow,
+    _noScanFolderContent = document.querySelector('.layout-musicDisabled'),
+    _scanFolderSelectedContent = document.querySelector('.layout-musicEnabled'),
+    _focusSettings = document.querySelector('.focusSettings'),
+    _selectRootContent = document.querySelector('.selectRootContent'),
+    _title = document.querySelector('title'),
+    _sago = require('s-ago'),
+    // datetime 
+    _lastIndexTime = null, 
+    _pathHelper = require('./lib/pathHelper'),
+    _updateFileCountLabel = require('./lib/ui/fileCountLabel'),
+    _updateErrorLogLink = require('./lib/ui/errorLogLink'),
+    _dataFolder = _path.join(_electron.remote.app.getPath('appData'), 'tunaIndexer'),
+    FileWatcher = require('./lib/fileWatcher'),
+    _fileWatcher = null,
+    // datetime
+    _indexStart = null,
+    FileIndexer = require('./lib/fileIndexer'),
+    _fileIndexer = null,
+    _mainWindow = null,
     _Tray = _electron.remote.Tray,
     _menu = _electron.remote.Menu,
     _dialog = _electron.remote.dialog,
-    _busyReadingFiles = false,
-    _watchedExtensions = ['.mp3', '.m4a'],
-    _filesChanged = false,
-    _allFiles = {},
-    _outputLogFile = _path.join(_dataFolder, 'output.log'),
-    _watcher,
     _config = new _Config(),
-    _autoLaunch = new _AutoLaunch({ name: 'Indexer' }),
-    _scanFolder = _config.get('scanFolder'),
-    _dropboxFolder = _config.get('dropboxRoot'),
+    _autoLaunch = new _AutoLaunch({ name: 'tunaIndexer' }),
+    _storageRootFolder = _config.get('storageRoot'),
     _isAutostarting = _config.get('autoStart'),
-    _errorsOccurred = false,
-    _mode = '',
+    _isStartMinimized = _config.get('startMinimized'),
     _tray = null;    
 
-if (!_fs.existsSync(_dataFolder))
-    _fs.mkdirSync(_dataFolder);
 
-// starts everything
-if (_mode === 'debug'){
-    setTimeout(() => {
-       initLoki(); 
-    }, 1000);
-} else 
-    initLoki();
-
-function initLoki(){
-    // load lokidb, this is async
-    if (_fs.existsSync(_lokijsPath)){
-        _lokijsdb.loadDatabase({}, function(){
-            _fileDataCollection = _lokijsdb.getCollection('fileData');
-            onLokiReady();
-        });
-    } else {
-        _fileDataCollection = _lokijsdb.addCollection('fileData',{ unique:['file']});
-        onLokiReady();
-    }
-}
-
-// continues after loki db has initialized
-function onLokiReady(){
-
-    // if loki hasn't loaded, its json file is corrupt, 
-    if (!_fileDataCollection){
-        _fs.unlink(_lokijsPath);
-        console.log('loki file corrupt, resetting');
-        return initLoki();
-    }
+// starts things up
+(async()=>{
+    
+    await _fs.ensureDir(_dataFolder)
 
     // set state of "auto start" checkbox
     if (_isAutostarting === undefined || _isAutostarting === null)
-        _isAutostarting = false;
-    _cbAutostart.checked = _isAutostarting;
+        _isAutostarting = false
+
+    _cbAutostart.checked = _isAutostarting
+
+    if (_isStartMinimized === undefined || _isStartMinimized === null)
+        _isStartMinimized = false
+
+    _cbStartMinimized.checked = _isStartMinimized
 
     // set autostart service for next time app starts
-    if (_cbAutostart)
-        _autoLaunch.enable();
+    if (_isAutostarting)
+        _autoLaunch.enable()
     else
-        _autoLaunch.disable();
+        _autoLaunch.disable()
 
-    setStateBasedOnScanFolder();
+    await setStateBasedOnScanFolder()
+    await fillFileTable()
 
-    _btnSelectRoot.addEventListener('click', function(){
 
-        var folder = _dialog.showOpenDialog({
-            properties: ['openDirectory']
+    // bind UI event handlers
+
+    // unbinds scan folder
+    _removeScanFolder.addEventListener('click', async ()=>{
+
+        const approved = _dialog.showMessageBox({
+            type: 'question',
+            buttons: ['No', 'Yes'],
+            title: 'Confirm',
+            message: 'Are you sure you want to unbind this folder? (You can always rebind it again)'
         });
 
-        if (folder && folder.length){
-            _scanFolder = folder[0];
-            _config.set('scanFolder', _scanFolder);
+        if(!approved)
+            return
 
-            _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
-            if (_dropboxFolder === null){
-                setStatus('Your music folder does not seem to be in your Dropbox folder');
-            }
+        // clean this p
+        if (_fileIndexer)
+            await _fileIndexer.wipe()
+            
+        setStorageRootFolder(null)
+        await fillFileTable()
+        await setStateBasedOnScanFolder()
 
-            _allFiles = {}; // force reset content
-        }
+    }, false)
 
-        setStateBasedOnScanFolder();
+    _focusSettings.addEventListener('click', ()=>{
+        window.__glu_verticalTabs['mainTabs'].focusNamed('settings')
+    });
 
-    }, false);
 
-    _cbAutostart.addEventListener('change', function() {
-        _config.set('autoStart', _cbAutostart.checked);
+    // binds scan folder
+    _btnSelectRoot.addEventListener('click', async ()=>{
+        const folder = _dialog.showOpenDialog({
+            properties: ['openDirectory']
+        })
+
+        if (folder && folder.length)
+            setStorageRootFolder(_pathHelper.toUnixPath(folder[0]))
+
+        await setStateBasedOnScanFolder()
+
+        // force dirty to rescan
+        _fileWatcher.dirty = true
+
+    }, false)
+
+
+    _cbAutostart.addEventListener('change', ()=>{
+        _config.set('autoStart', _cbAutostart.checked)
 
         if (_cbAutostart.checked)
-            _autoLaunch.enable();
+            _autoLaunch.enable()
         else
-            _autoLaunch.disable();
-    });
+            _autoLaunch.disable()
+    })
 
-    _openLogLink.addEventListener('click', function(){
-        _electron.shell.openItem(_outputLogFile);
-    });
 
-    _btnReindex.addEventListener('click', function() {
-        _fileDataCollection.clear(); // force flush collection
-        _lokijsdb.saveDatabase();
-        
-        scanAllFiles(function(){
-            _filesChanged = true;
-        });
+    _cbStartMinimized.addEventListener('change', ()=>{
+        _config.set('startMinimized', _cbStartMinimized.checked)
+    })
 
-    }, false);
 
-    bindMainWindowEvents();
+    _btnReindex.addEventListener('click', async()=>{
+         // force rescan and dirty
+         if (_fileWatcher)
+            await _fileWatcher.rescan(true)
+    }, false)
 
-    _electron.remote.app.on('ready', function() {
-        onAppReady();
-    });
 
-    if (_electron.remote.app.isReady()){
-        onAppReady();
-    }
-}
+    bindMainWindowEvents()
+
+    if (_electron.remote.app.isReady())
+        await onAppReady()
+    else
+        _electron.remote.app.on('ready', async ()=>{
+            await onAppReady()
+        })
+    
+})()
 
 
 /** 
@@ -152,53 +159,51 @@ function onLokiReady(){
  * null. 
  */
 function bindMainWindowEvents(){
-    function bind(){
 
-        _mainWindow.on('minimize',function(e){
-            e.preventDefault();
-            _mainWindow.hide();
-        });
-    
-        _mainWindow.on('close', function (e) {
-            if( !_electron.remote.app.isQuiting){
-                e.preventDefault();
-                _mainWindow.hide();
-            }
-            return false;
-        });
-    }
+    let attempts = 0,
+        mainWindowFindTimer = setInterval(()=>{
+            attempts ++
 
-    var attempts = 0,
-    mainWindowFindTimer = setInterval(function(){
-        attempts ++;
+            let mainWindow,
+                allwindows = _electron.remote.BrowserWindow.getAllWindows()
 
-        var mainWindow,
-            allwindows = _electron.remote.BrowserWindow.getAllWindows();
-
-        if (allwindows && allwindows.length === 1)
-            mainWindow = allwindows[0];
-    
-        if (!mainWindow)
-            mainWindow = _electron.remote.BrowserWindow.getFocusedWindow(); 
-
-        if (mainWindow || attempts > 20){
-            clearInterval(mainWindowFindTimer);
-            _mainWindow = mainWindow;
-            if (mainWindow)
-                bind();
-        }
+            if (allwindows && allwindows.length === 1)
+                mainWindow = allwindows[0]
         
-    }, 500);
+            if (!mainWindow)
+                mainWindow = _electron.remote.BrowserWindow.getFocusedWindow()
 
-}
+            if (mainWindow || attempts > 20){
+                clearInterval(mainWindowFindTimer)
+                _mainWindow = mainWindow
+                
+                // if main window still wasn't found, kill app and exit, we can't recover from this
+                if (!mainWindow)
+                    return _process.exit(1)
 
+                _mainWindow.on('minimize',(e)=>{
+                    e.preventDefault()
+                    _mainWindow.hide()
+                })
+                
+                // always hide app on close, actual closing is done from system tray
+                _mainWindow.on('close', (e)=>{
+                    e.preventDefault()
+                    _mainWindow.hide()
+                    return false
+                })
 
-/**
- * Writes current action to UI. Only one action is displayed at a time. Use this to inform user what app is currently
- * doing.
- */
-function setProgress(action){
-    _currentAction.innerHTML = action;
+                // hide menu
+                _mainWindow.setMenu(null)
+
+                // autohide indexer on start, this isn't the best way of doing it
+                // as you can still see app starting
+                if (_isStartMinimized)
+                    _mainWindow.hide()
+            }
+            
+        }, 500)
+
 }
 
 
@@ -206,426 +211,159 @@ function setProgress(action){
  * 
  */
 function setStatus(status){
-    _status.innerHTML = status;
+    if (status)
+        status = ` - ${status}`
+
+    _title.innerHTML = `Tuna Indexer${status}`
 }
 
 
 /**
- * 
- */ 
-function filesFound(count){
-    _filesFoundCount.innerHTML = (count ? count : 'No') + ' files found';
-}
-
-
-/**
- * Resolves path fragment from scanFolder to get to dropbox root. Returns null
- * if no path found.
+ * Renders the table showing all files found
  */
-function resolveDropboxPathFragment(startFolder){
-
-    var current = startFolder;
-
-    do {
-        // is current dropbox root?
-        if (_fs.existsSync(_path.join(current, '.dropbox')) || _fs.existsSync(_path.join(current, '.dropbox.cache'))){
-            return current.replace(/\\/g, '/');
-        }
-
-        var parent = _path.join(current, '../');
-        if (current === parent)
-            break;
-
-        current = parent;    
-    }
-    while(_fs.existsSync(current));
-
-    return null;
-};
-    
-
-/** 
- *  1) scan all fires - store in array
- *  2) add all changes to array
- *  3) on change, pause 2 seconds, then write xml file
- *  4) if change while writing, queue change until done
- */
-function registerFileChange(file, action){
-    var extension = _path.extname(file);
-    
-    if (_watchedExtensions.indexOf(extension) === -1)
-        return;
-
-    if (action === 'delete')
-        delete _allFiles[file];
-    else{
-        _allFiles[file] = _allFiles[file] || {};
-        _allFiles[file].file = file;
-    }
-
-    _filesChanged = true;
-}
-
-
-/**
- * Writes item to output log. Log should be for errors only, not general status. Log is cleared each time app
- * starts.
- */
-function writeToLog(text){
-    _fs.appendFile(_outputLogFile, text + _os.EOL, function(err){
-        if (err)
-            console.log(err);
-    });
-}
-
-
-/**
- * Called when music files in the watched folder change. Reads mp3 tags for all files found, 
- * then writes XML from those tags. All files are read for any change because all data has to 
- * written to a single index file. 
- * 
- * This can be optimized by 
- */
-function handleFileChanges(){
-
-    if (!_filesChanged)
-        return;
-
-    if (_busyReadingFiles)
-        return;
-
-    _filesChanged = false;
-    _busyReadingFiles = true;
-    _errorsOccurred = false;
-    _btnReindex.classList.add('button--disable');
-    _openLogLink.style.visibility = 'hidden';
-
-    if (_dropboxFolder === null){
-        setStatus('The path you selected is not within a Dropbox folder.');
+async function fillFileTable(){
+    if (!_fileIndexer){
+        _allFilesTable.innerHTML = ''
         return;
     }
+        
+    let allFiles = _fileIndexer.getAllFiles(),
+        errors = 0,
+        count = 1,
+        html = ''
 
-    // clear output log
-    _fs.writeFileSync(_outputLogFile, '');
+    _updateFileCountLabel(allFiles)
 
-    var processedCount = 0,
-        allProperties = Object.keys(_allFiles),
-        filesToProcessCount = allProperties.length;
+    errors = allFiles.filter(file => !file.isValid).length
+    allFiles = allFiles.sort((a,b) => 
+        a.mtime < b.mtime  ? 1 :
+        a.mtime > b.mtime  ? -1 :
+        0
+    )
+    allFiles = allFiles.slice(0, 10)
 
-    filesFound(filesToProcessCount);
+    if (allFiles.length)
+        html += `<li class="allFilesTableRow allFilesTa_bleRow--error">${allFiles.length} most recent changes</li>`
 
-    var intervalBusy = false,
-        jsmediatags = require('jsmediatags');
+    for (let file of allFiles){
+        let filePath = file.file
 
-    var timer = setInterval(function(){
+        if (_storageRootFolder)
+            filePath = filePath.substring(_storageRootFolder.length)
 
-        if (intervalBusy)
-            return;
-
-        intervalBusy = true;
-
-        _busyReadingFiles = true;
-
-        // check if all objects have been processed, if so write xml from loki and exit
-        if (processedCount === filesToProcessCount - 1){
-            _busyReadingFiles = false;
-            _lokijsdb.saveDatabase();
-            clearInterval(timer);
-            setProgress('');
-            generateXml();
-            intervalBusy = false;
-            return;
-        }
-
-        var file = allProperties[processedCount];
-
-        // ensure file exists, during deletes this list can be slow to update
-        if (!_fs.existsSync(file)) {
-            delete _allFiles[file];
-            processedCount ++;
-            intervalBusy = false;
-            return;
-        }
-
-        // check if file data is cached in loki, and if file was updated since then
-        var fileStats,
-            fileCachedData = _fileDataCollection.by('file', file);
-
-        if (fileCachedData){
-            fileStats = _fs.statSync(file);
-            if (fileStats.mtime.toString() === fileCachedData.mtime){
-                processedCount ++;
-                intervalBusy = false;
-                return;
-            }
-        }
-
-        var insert = false;
-        if (!fileCachedData){
-            fileCachedData = {
-                file : file
-            };
-            insert = true;
-        }
-
-        // reads tags from file, this is slow hence loki caching
-        jsmediatags.read(file, {
-            onSuccess: function(tag) {
-
-                processedCount ++;
-
-                if (tag.type === 'ID3' || tag.type === 'MP4'){
-                    var fileNormalized = file.replace(/\\/g, '/');
-
-                    fileCachedData.dirty = true;
-                    fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                    fileCachedData.tagData = {
-                        name : tag.tags.title,
-                        album : tag.tags.album,
-                        track : tag.tags.track,
-                        artist : tag.tags.artist,
-                        clippedPath : fileNormalized.replace(_dropboxFolder, '/').replace(/\\/g, '/')
-                    };
-                    
-                    var percent = Math.floor(processedCount / filesToProcessCount * 100);
-                    setProgress(percent + '% : ' + tag.tags.title + ' - ' + tag.tags.artist);
-
-                    if (insert)
-                        _fileDataCollection.insert(fileCachedData);
-                    else
-                        _fileDataCollection.update(fileCachedData);
-                }
-
-                intervalBusy = false;
-            },
-            onError: function(error) {
-                processedCount ++;
-                var message = '';
-
-                if (error.type && error.type === 'tagfail'){
-                    message = file + ' tag read fail.';
-                } else {
-                    message = file + ' could not be read, is it properly tagged?';
-                }
-
-                fileCachedData.dirty = false;
-                fileCachedData.mtime = fileStats ? fileStats.mtime.toString() : '';
-                fileCachedData.tagData  = null;
-
-                if (insert)
-                    _fileDataCollection.insert(fileCachedData);
-                else
-                    _fileDataCollection.update(fileCachedData);
-
-                writeToLog(message + ' : ' + JSON.stringify(error));
-                _errorsOccurred = true;
-                intervalBusy = false;
-            }
-        }); // timer function
-    }, 2); // timer
-
-}
-
-
-/**
- * Writes XML index file from data in _allFiles.
- */ 
-function generateXml(){
-    var writer = null;
-    
-    // abort if busy, will be called again
-    if (_filesChanged || _busyReadingFiles)
-        return;
-
-    // check for dirty files
-    var dirty = _fileDataCollection.find({dirty :  true});
-    if (!dirty.length)
-    {
-        setStatus('');
-        _btnReindex.classList.remove('button--disable');
-        return;
+        html += `<li class="allFilesTableRow allFilesTa_bleRow--error">${count} - ${filePath} (${_sago(new Date(file.mtime))})</li>`
+        count ++
     }
 
-    setStatus('Indexing ... ');
-
-    // force rebuild array, this tends to lag behind
-    var allProperties = Object.keys(_allFiles),
-        lineoutcount = 0,
-        id3Array = [],
-        XMLWriter = require('xml-writer'),
-        writer = new XMLWriter();
-
-    writer.startDocument();
-    writer.startElement('items');
-    writer.writeAttribute('date', new Date().getTime());
-
-    for (var i = 0 ; i < allProperties.length ; i ++) {
-
-        lineoutcount ++;
-
-        // abort if busy, will be called again
-        if (_filesChanged || _busyReadingFiles)
-            return;
-
-        var fileData = _fileDataCollection.by('file', allProperties[i]);
-        if (!fileData)
-            continue; // this should never happen
-
-        if (!fileData.tagData)
-            continue;
-
-        var id3 = fileData.tagData;
-
-        if (!id3 || !id3.album || !id3.artist || !id3.name)
-            continue;
-
-        writer.startElement('item');
-        writer.writeAttribute('album', id3.album);
-        writer.writeAttribute('artist', id3.artist);
-        writer.writeAttribute('name', id3.name);
-        writer.writeAttribute('path', id3.clippedPath);
-        writer.endElement();
-
-        setStatus('Indexing ' + lineoutcount + ' of ' + id3Array.length + ', ' + id3.artist + ' ' + id3.name);
+    if (_fileIndexer){
+        const lastIndexDate = await _fileIndexer.getLastIndexDate()
+        
+        if (lastIndexDate)
+            document.querySelector('.lastReindexTime').innerHTML = `Last indexed ${_sago(lastIndexDate)}`
     }
+        
+    _allFilesTable.innerHTML = html
 
-    writer.endElement();
-    writer.endDocument();
-
-    var xml = writer.toString();
-    _fs.writeFileSync(_path.join(_dropboxFolder, '.myStream.dat'), xml);
-
-    // clean dirty records
-    for (var i = 0 ; i < dirty.length ; i ++){
-        var record = dirty[i];
-        record.dirty = false;
-        _fileDataCollection.update(record);
-    }
-
-    // remove orphans
-    var orphans = _fileDataCollection.where(function(r){
-        return allProperties.indexOf(r.file) === -1;
-    });
-
-    for (var i = 0 ; i < orphans.length ; i ++) {
-        _fileDataCollection.remove(orphans[i]);
-    }
-
-    _lokijsdb.saveDatabase();
-
-    setStatus('Indexing complete');
-    _btnReindex.classList.remove('button--disable');
-
-    if (_errorsOccurred)
-        _openLogLink.style.visibility = 'visible';
-}
-
-
-/**
- * Called when the "reindex now" button is clicked. Force rescans and reindexex everything. Does not directly trigger reindex, 
- * just queues all files as changed.
- */
-function scanAllFiles (callback){
-    if (_busyReadingFiles)
-        return;
-    _busyReadingFiles = true;
-
-    var root = _scanFolder.replace(/\\/g, '/');
-
-    setStatus('Scanning files, this can take a while ... ');
-    
-    var globPaths = [];
-    for (var i = 0; i < _watchedExtensions.length ; i ++)
-        globPaths.push(_path.join(root, '**/*' + _watchedExtensions[i]));
-
-    _glob(globPaths, { }, function(er, files) {
-        if (er)
-            throw er;
-
-        filesFound(files.length);
-        setStatus('');
-
-        _allFiles = {};
-        for (var i = 0 ; i < files.length ; i ++)
-            _allFiles[files[i]] = {
-                file : files[i] // todo : check if this is still used
-            };
-
-        _busyReadingFiles = false;
-        if (callback)
-            callback();
-    });
+    if (_fileIndexer)
+        _updateErrorLogLink(errors, _fileIndexer.logPath)
 }
 
 
 /**
  * Does final setup stuff when app is ready
  */
-function onAppReady(){
-    _tray = new _Tray(__dirname + '/resources/windows/icon.ico');
+async function onAppReady(){
+    _tray = new _Tray(__dirname + '/resources/windows/icon.ico')
 
-    var contextMenu = _menu.buildFromTemplate([
-        {label: 'Show', click:  function() {
-            _mainWindow.show();
-        } },
-        {label: 'Quit', click:  function(){
-            _electron.remote.app.isQuiting = true;
-            _electron.remote.app.quit();
+    const contextMenu = _menu.buildFromTemplate([
+        {
+            label: 'Show', click : ()=> {
+                _mainWindow.show()
+            } 
+        },
+        {
+            label: 'Quit', click : async()=>{
+                await _electron.ipcRenderer.send('real-death', true)
+                _electron.remote.app.quit()
+            }
+        }
+    ])
 
-        } }
-    ]);
+    _tray.setToolTip('Tuna Indexer')
+    _tray.setContextMenu(contextMenu)
 
-    _tray.setToolTip('myStream.cc Indexer');
-    _tray.setContextMenu(contextMenu);
+    // force rescan
+    if (_fileWatcher)
+        await _fileWatcher.rescan()
 }
 
+
+/** 
+ * The only place we set storageFolder.
+ */
+function setStorageRootFolder(folder){
+    _storageRootFolder = folder
+    _config.set('storageRoot', folder)
+}
+
+
+async function handleIndexStart(){
+    _indexStart = new Date()
+    _btnReindex.innerHTML = 'Reindexing'
+    document.querySelector('body').classList.add('body--disabled')
+    setStatus('Searching ...')
+}
+
+async function handleIndexinDone(){
+    const lapsed = new Date().getTime() - _indexStart.getTime(),
+        minTime = 3000
+
+    setTimeout(async ()=> {
+        _btnReindex.innerHTML = 'Reindex'
+        document.querySelector('body').classList.remove('body--disabled')
+        await fillFileTable()
+        _lastIndexTime = new Date()
+    }, lapsed < minTime ? minTime - lapsed : 0)
+
+}
+
+async function handleStatus(status){
+    setStatus(status)
+}
 
 /**
  * Initialize watcher for file changes. This happens on app start, and when a new watch
  * folder is selected.
  */
-function setStateBasedOnScanFolder(){
-    
-    if (!_scanFolder)
-        return;
+async function setStateBasedOnScanFolder(){
+    // force defaults
+    _scanFolderWrapper.style.visibility = 'hidden'
+    _pathSelectedContent.style.visibility = 'hidden'
+    _scanFolderWrapper.style.visibility = 'hidden'
+    _noScanFolderContent.style.display = 'block'
+    _scanFolderSelectedContent.style.display = 'none'
+    _selectRootContent.style.display = 'block'
 
-    _dropboxFolder = resolveDropboxPathFragment(_scanFolder);
+    if (!_storageRootFolder)
+        return
 
-    _pathSelectedContent.style.visibility = 'visible';
-    _scanFolderWrapper.style.visibility = 'visible';
-    _scanFolderDisplay.innerHTML = _scanFolder;
+    _scanFolderSelectedContent.style.display = 'block'
+    _noScanFolderContent.style.display = 'none'
+    _pathSelectedContent.style.visibility = 'visible'
+    _scanFolderWrapper.style.visibility = 'visible'
+    _scanFolderDisplay.innerHTML = _storageRootFolder
+    _selectRootContent.style.display = 'none'
 
-    if (_dropboxFolder === null){
-        setStatus('Error : Your music folder is not in your Dropbox folder');
-    } else {
+    _fileWatcher = new FileWatcher(_storageRootFolder)
+    _fileWatcher.onStatusChange(handleStatus)
+    await _fileWatcher.start()
 
-        scanAllFiles(function(){
+    if (_fileIndexer)
+        _fileIndexer.dispose()
 
-            _watcher = _chokidar.watch([_scanFolder], {
-                persistent: true,
-                ignoreInitial : true,
-                awaitWriteFinish: {
-                    stabilityThreshold: 2000,
-                    pollInterval: 100
-                }
-            });
-            
-            // start watched for file changes
-            _watcher
-                .on('add', function(p) {
-                    registerFileChange(p, 'add');
-                })
-                .on('change', function(p){
-                    registerFileChange(p, 'change');
-                })
-                .on('unlink', function(p){
-                    registerFileChange(p, 'delete');
-                });
-                
-            // start handler for observed file changes    
-            setInterval(function(){
-                handleFileChanges();
-            }, 1000);
-        });
-    }
+    _fileIndexer = new FileIndexer(_fileWatcher)
+    _fileIndexer.onIndexing(handleIndexStart)
+    _fileIndexer.onIndexed(handleIndexinDone)
+    _fileIndexer.onStatus(handleStatus)
+    await _fileIndexer.start()
 }

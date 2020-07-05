@@ -1,0 +1,66 @@
+
+
+html {
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    background-color: var(--color-nero);
+    color: var(--color-white);
+    font-family: sans-serif;
+    font-size: 14px;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* disable all buttons and links */
+body.body--disabled .button, body.body--disabled a{
+    pointer-events: none;
+    opacity: .4;
+}
+
+a {
+    color: var(--color-tiaMaria);
+}
+
+.scanFolder {
+    font-weight: bold;
+}
+
+.openLog{
+    color: var(--color-persimmon);
+    cursor: pointer;
+    display: none;
+}
+
+.pathSelectedContent {
+    visibility: hidden;
+    height: 35px; 
+}
+
+.scanFolderWrapper {
+    visibility: hidden;
+}
+
+.allFilesTable {
+    padding: 0;
+}
+
+.allFilesTableWrapper{
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100% - 78px); /* - height of the the two filter items above this*/
+    max-width: 100%;
+}
+
+.allFilesTableRow{
+    background-color: var(--color-mineShaft);
+    padding: calc(var(--universalMargin) / 2);
+    white-space: nowrap;
+}
+
+.allFilesTableRow--error {
+    color: var(--color-persimmon);
+}

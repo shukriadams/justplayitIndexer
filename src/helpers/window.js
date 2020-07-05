@@ -3,7 +3,7 @@
 // Can be used for more than one window, just construct many
 // instances of it and give each different name.
 
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, ipcMain } from 'electron';
 import jetpack from 'fs-jetpack';
 
 export default function (name, options) {
@@ -16,6 +16,7 @@ export default function (name, options) {
     };
     var state = {};
     var win;
+    var _realDeath;
 
     var restore = function () {
         var restoredState = {};
@@ -65,17 +66,24 @@ export default function (name, options) {
         }
         return windowState;
     };
+    
+    ipcMain.on('real-death', function (event,store) {
+        _realDeath = true;
+    });
 
-    var saveState = function () {
+    var saveState = function (e) {
         if (!win.isMinimized() && !win.isMaximized()) {
             Object.assign(state, getCurrentPosition());
         }
-        userDataDir.write(stateStoreFile, state, { atomic: true });
+        userDataDir.write(stateStoreFile, Object.assign(state, options), { atomic: true });
+
+        // prevent app from closing here, close will be handled in indexer.js instead
+        if (!_realDeath)
+            e.preventDefault();
     };
 
     state = ensureVisibleOnSomeDisplay(restore());
-
-    win = new BrowserWindow(Object.assign({}, options, state));
+    win = new BrowserWindow(Object.assign({}, state, options));
 
     win.on('close', saveState);
 

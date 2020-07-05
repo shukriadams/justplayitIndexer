@@ -1,8 +1,8 @@
-# myStream.cc Indexer
+# Tuna Indexer
 
-Indexes your music files, making them ready to play through [myStream.cc](https://www.mystream.cc)
+Indexes your music files, making them ready to play through [Tuna](https://github.com/shukriadams/tuna-server)
 
-- Windows : [Download version 0.0.2](https://github.com/shukriadams/mystreamccindexer/releases/download/0.0.2/myStreamCCIndexer_Setup_0.0.2.exe)
+- Windows : [Download version 0.0.2](https://github.com/shukriadams/tuna-indexer/releases/download/0.0.2/TunaIndexer_Setup_0.0.2.exe)
 - Mac : Coming soon.
 - Linux : Coming soon.
 
@@ -14,26 +14,25 @@ Note for Windows - this project cannot be run in Vagrant or any VirtualBox host 
 
 ### Setup
 
-- Install Node 6.x
-- in / set up boilerplate with
+- Install Node 6.x or higher.
+- Run
 
     npm install 
-
-- in /app set up custom dependencies
-
-    npm install 
+    cd /app
+    npm install
 
 ### Dev
   
-- in /
+- Run
 
     npm start
 
-To test the app, point it to a folder containing a ".dropbox" subfolder, this is used as a flag that the folder is being controlled by Dropbox. The app generates a ".myStream.dat" file, which contains XML data.
+To test the app, point it to a folder containing a ".dropbox" subfolder, this is used as a flag that the folder is being controlled by Dropbox. The app generates a ".tuna.xml" file.
 
 ### Build 
 
-- in /
+- update package.json in the /app folder with latest version number.
+- Run
 
     npm run release     
 

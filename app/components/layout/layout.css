@@ -1,0 +1,20 @@
+/**
+ * Layout uses the push-down convention. Always favor padding over margin.
+ */
+.layout_section {
+    padding-bottom: calc(var(--universalMargin) * 2);
+}
+
+.layout_section.layout_section--bordered {
+    border-bottom: 1px solid #3a3939;
+    /*adds additional space beyond bottom border*/
+    margin-bottom: calc(var(--universalMargin) * 2);
+}
+
+.layout_row{
+    padding-bottom:var(--universalMargin);
+}
+
+.layout-musicEnabled {
+    height: 100%;
+}

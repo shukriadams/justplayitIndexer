@@ -1,6 +1,6 @@
 {
   "build": {
-    "appId": "com.shukriadams.justplayitIndexer",
+    "appId": "com.tuna.indexer",
     "app-category-type": "musicFileIndexer",
     "win": {
       "target": [

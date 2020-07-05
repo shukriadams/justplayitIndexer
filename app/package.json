@@ -1,21 +1,24 @@
 {
-  "name": "myStreamCCIndexer",
-  "productName": "myStreamCCIndexer",
-  "description": "Indexes music files for myStream.cc",
-  "version": "0.0.2",
-  "author": "Shukri Adams <info@myStream.cc>",
+  "name": "tunaindexer",
+  "productName": "TunaIndexer",
+  "description": "Indexes music files for Tuna",
+  "version": "0.0.4",
+  "author": "Shukri Adams <shukri.adams@gmail.com>",
   "copyright": "© 2016, Shukri Adams",
-  "homepage": "http://myStream.cc",
+  "homepage": "http://www.github.com/shukriadams/tuna-indexer",
   "license": "MIT",
   "main": "background.js",
   "dependencies": {
-    "auto-launch" : "5.0.1",
-    "lokijs" : "1.5.5",
-    "electron-config" : "0.2.1",
+    "auto-launch": "5.0.5",
+    "lokijs": "1.5.5",
+    "hasha": "5.2.0",
+    "timebelt": "https://github.com/shukriadams/timebelt.git#0.1.5",
+    "electron-config": "0.2.1",
+    "s-ago": "2.1.0",
+    "fs-extra": "8.0.1",
     "fs-jetpack": "^0.9.0",
-    "jsmediatags" : "3.8.1",
-    "multi-glob" : "1.0.1",
-    "xml-writer" : "1.6.0",
-    "chokidar" : "1.6.0"
+    "music-metadata": "3.8.0",
+    "multi-glob": "1.0.1",
+    "chokidar": "1.6.0"
   }
 }

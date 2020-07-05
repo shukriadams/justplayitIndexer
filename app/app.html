@@ -2,54 +2,100 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title>myStream.cc Indexer</title>
-        <link rel="stylesheet" href="main.css" type="text/css">
+        <title>Tuna Indexer</title>
+        <link rel="stylesheet" href="components/main/variables.css" type="text/css">
+        <link rel="stylesheet" href="components/main.css" type="text/css">
+        <link rel="stylesheet" href="components/type/type.css" type="text/css">
+        <link rel="stylesheet" href="components/button/button.css" type="text/css">
+        <link rel="stylesheet" href="components/form/form.css" type="text/css">
+        <link rel="stylesheet" href="components/layout/layout.css" type="text/css">
+        <link rel="stylesheet" href="components/glu_verticalTabs/glu_verticalTabs.css" type="text/css">
+        <link rel="stylesheet" href="components/overrides/glu_verticalTabs.css" type="text/css">
     </head>
     <body>
-        <div class="contentWrapper">
-            <div class="settings">
-                
-                <h2>myStream.cc Indexer</h2>
+        
 
+        <div class="glu_verticalTabs" id="mainTabs">
 
-                <div class="settingsItem bordered">
-                    <div>
-                        <button class="button btnSelectRoot"> Find my music</button>
+            <!-- Tabs -->
+            <ul class="glu_verticalTabs-tabs">
+                <li class="glu_verticalTabs-tab" data-tab="settings">
+                    <div class="glu_verticalTabs-text">Settings</div>
+                </li>
+                <li class="glu_verticalTabs-tab" data-tab="music">
+                    <div class="glu_verticalTabs-text">Music</div>
+                </li>
+            </ul>
+
+            <!-- Content panels -->
+            <ul class="glu_verticalTabs-panels">
+                <li class="glu_verticalTabs-panel" data-tab="settings">
+                    <div class="layout_section layout_section--bordered">
+                        <div class="selectRootContent">
+                            <div class="layout_row">
+                                <button class="button btnSelectRoot"> Add Dropbox / NextCloud folder</button>
+                            </div>
+        
+                            <div class="layout_row type_subscript">
+                                (all music in this will be indexed)
+                            </div>
+                        </div>
+                        
+                        <div class="scanFolderWrapper">
+                            <div class="layout_row">
+                                <span>Watching </span> <span class="scanFolder"></span>
+                                <a href="javascript:void(0)" class="removeScanFolder">Stop</a> 
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layout_section layout_section--bordered">
+                        <div class="layout_row">
+                            <input id="cbAutostart" class="cbAutostart" type="checkbox" />
+                            <label class="form-checkboxLabel" for="cbAutostart">Start automatically</label>
+                        </div>
+                        <div class="layout_row">
+                            <input id="cbStartMinimized" class="cbStartMinimized" type="checkbox" />
+                            <label class="form-checkboxLabel" for="cbStartMinimized">Start minimized</label>
+                        </div>
                     </div>
 
-                    <div class="subscript">
-                        (music has to be in a Dropbox folder)
+                    <div class="layout_section pathSelectedContent">
+                        <p class="type_subscript">
+                            Reindexing is automatic, but if your file changes aren't showing up, 
+                            you can force a re-read.
+                        </p>
+                        <button class="button btnReindex">Reindex</button>
+                    </div>                    
+                </li>
+
+                <li class="glu_verticalTabs-panel" data-tab="music">
+                    <div class="layout-musicDisabled">
+                        <p>
+                            To index your music, select a folder to scan under <a class="focusSettings" href="javascript:void(0)">Settings</a>
+                        </p>
                     </div>
-                    
-                    <div class="scanFolderWrapper">
-                        <span>Your music is in : </span> <span class="scanFolder"></span>
+                    <div class="layout-musicEnabled">
+                        <div class="layout_row">
+                            <div class="lastReindexTime"></div>
+                        </div>
+                        <div class="layout_row">
+                            <span class="filesFoundCount"></span>
+                            <a class="openLog">View errors</a>
+                        </div>
+
+                        <div class="layout_row allFilesTableWrapper">
+                            <ul class="allFilesTable"></ul>
+                        </div>                    
                     </div>
-                </div>
+                </li>   
 
+            </ul>
 
-
-                <div class="settingsItem pathSelectedContent">
-                    <button class="button btnReindex">Reindex now</button>
-                </div>
-
-                <div class="settingsItem bordered">
-                    <input id="cbAutostart" class="cbAutostart" type="checkbox" />
-                    <label for="cbAutostart">Start automatically</label>
-                </div>
-
-                <div class="settingsSection">
-                    <div class="settingsItemMinor filesFoundCount"></div>
-                    <div class="settingsItemMinor status"></div>
-                    <a class="settingsItemMinor openLog">View errors</a>
-                    <div class="settingsItemMinor currentAction"></div>
-                </div>
-            </div>
-
-            
         </div>
     </body>
 
     <script>
         require('./indexer.js')
+        require('./components/glu_verticalTabs/glu_verticalTabs.js')
     </script>
 </html>

@@ -1,0 +1,13 @@
+
+.button {
+    background-color:var(--color-tiaMaria);
+    cursor: pointer;
+    color:var(--color-white);
+    border-style: none;
+    padding: var(--universalMargin) calc(var(--universalMargin)*2);
+}
+
+.button.button--disable {
+    opacity: .5;
+    pointer-events: none;
+}
