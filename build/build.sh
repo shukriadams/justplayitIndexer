@@ -106,7 +106,7 @@ eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:al
 
 # upload file to github
 GH_ASSET="https://uploads.github.com/repos/$repo/releases/$id/assets?name=${outFilename}"
-curl --data-binary @"${outFilename}" -H "Authorization: token $token" -H "Content-Type: application/octet-stream" $GH_ASSET
+curl --silent --data-binary @"${outFilename}" -H "Authorization: token $token" -H "Content-Type: application/octet-stream" $GH_ASSET
 
 echo "App uploaded"
 
