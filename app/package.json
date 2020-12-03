@@ -2,7 +2,7 @@
   "name": "tunaindexer",
   "productName": "TunaIndexer",
   "description": "Indexes music files for Tuna",
-  "version": "0.0.4",
+  "version": "0.0.0",
   "author": "Shukri Adams <shukri.adams@gmail.com>",
   "copyright": "© 2016, Shukri Adams",
   "homepage": "http://www.github.com/shukriadams/tuna-indexer",
