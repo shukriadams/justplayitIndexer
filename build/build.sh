@@ -9,6 +9,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+repo="shukriadams/tuna-indexer"
 
 # force get tags, these don't always seem to be pulled by jenkins
 git fetch --all --tags
